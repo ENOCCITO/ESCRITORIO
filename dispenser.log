@@ -1,0 +1,85 @@
+================================================================================
+🔐 SISTEMA DE DISPENSACIÓN BIOMÉTRICA - CEFA
+📋 ARCHIVO DE LOG DEL SISTEMA
+📅 Fecha de inicio: 2025-09-09 10:07:38
+💻 Sistema operativo: Windows 11
+🐍 Versión Python: 3.12.6
+📁 Directorio de trabajo: C:\Users\enoc3\OneDrive\Documentos\Felipe\llaves_escritorio
+================================================================================
+
+[2025-09-09 10:07:38] 🚀 SISTEMA DE LOGGING INICIADO CORRECTAMENTE
+[2025-09-09 10:07:38] ✅ Archivo dispenser.log creado y configurado
+[2025-09-09 10:07:38] ⚠️ psutil no disponible - Información del sistema limitada
+[2025-09-09 10:07:43] ✅ Sensor biométrico conectado y verificado
+[2025-09-09 10:07:43] 📱 Iniciando captura de huella digital...
+[2025-09-09 10:07:43] ✅ Huella capturada y convertida correctamente
+[2025-09-09 10:07:43] 🔍 Comparando huella capturada con candidatos de SICEFA...
+[2025-09-09 10:07:46] ✅ Identificación exitosa: FELIPE MARTINEZ (ID: 8) con puntuación 143
+[2025-09-09 10:07:46] 🔐 Acceso de ADMINISTRADOR concedido
+[2025-09-09 10:07:48] 🚪 Modal de escaneo de huella cerrado después de login exitoso
+[2025-09-09 10:07:52] ✅ Datos de personal cargados correctamente
+[2025-09-09 10:07:52] ✅ Lector biométrico conectado en COM3 con baudrate 57600
+[2025-09-09 10:08:03] 🔌 Lector biométrico desconectado
+[2025-09-09 10:08:08] ✅ Sensor biométrico conectado y verificado
+[2025-09-09 10:08:08] 📱 Iniciando captura de huella digital...
+[2025-09-09 10:08:10] ✅ Huella capturada y convertida correctamente
+[2025-09-09 10:08:10] 🔍 Comparando huella capturada con candidatos de SICEFA...
+[2025-09-09 10:08:13] ✅ Identificación exitosa: ENOC ROJAS QUIÑONES (ID: 1) con puntuación 77
+[2025-09-09 10:08:13] 🔐 Acceso de INSTRUCTOR concedido
+[2025-09-09 10:08:15] 🚪 Modal de escaneo de huella cerrado después de login exitoso
+[2025-09-09 10:08:32] ✅ Sensor biométrico conectado y verificado
+[2025-09-09 10:08:32] 📱 Iniciando captura de huella digital...
+[2025-09-09 10:08:37] ✅ Huella capturada y convertida correctamente
+[2025-09-09 10:08:37] 🔍 Comparando huella capturada con candidatos de SICEFA...
+[2025-09-09 10:08:39] ✅ Identificación exitosa: JULIO JARAMILLO (ID: 2) con puntuación 162
+[2025-09-09 10:08:39] 🔐 Acceso de SEGURIDAD concedido
+[2025-09-09 10:08:41] 🚪 Modal de escaneo de huella cerrado después de login exitoso
+[2025-09-09 10:08:45] Obtenidos 6 ambientes disponibles
+[2025-09-09 10:09:06] ✅ Sensor biométrico conectado y verificado
+[2025-09-09 10:09:06] 📱 Iniciando captura de huella digital...
+[2025-09-09 10:09:08] ✅ Huella capturada y convertida correctamente
+[2025-09-09 10:09:08] 🔍 Comparando huella capturada con candidatos de SICEFA...
+[2025-09-09 10:09:11] ✅ Identificación exitosa: JUAN PÉREZ (ID: 6) con puntuación 98
+[2025-09-09 10:09:11] ❌ Acceso denegado: JUAN PÉREZ no es cleaning
+[2025-09-09 10:09:20] ✅ Sensor biométrico conectado y verificado
+[2025-09-09 10:09:20] 📱 Iniciando captura de huella digital...
+[2025-09-09 10:09:21] ✅ Huella capturada y convertida correctamente
+[2025-09-09 10:09:21] 🔍 Comparando huella capturada con candidatos de SICEFA...
+[2025-09-09 10:09:23] ✅ Identificación exitosa: JUAN PÉREZ (ID: 5) con puntuación 143
+[2025-09-09 10:09:23] 🔐 Acceso de LIMPIEZA concedido
+[2025-09-09 10:09:26] 🚪 Modal de escaneo de huella cerrado después de login exitoso
+[2025-09-09 10:09:26] Obtenidos 6 ambientes disponibles
+[2025-09-09 10:09:39] ✅ Sensor biométrico conectado y verificado
+[2025-09-09 10:09:39] 📱 Iniciando captura de huella digital...
+[2025-09-09 10:09:41] ✅ Huella capturada y convertida correctamente
+[2025-09-09 10:09:41] 🔍 Comparando huella capturada con candidatos de SICEFA...
+[2025-09-09 10:09:44] ✅ Identificación exitosa: JUAN PÉREZ (ID: 6) con puntuación 182
+[2025-09-09 10:09:44] 🔐 Acceso de ADMINISTRATIVO concedido
+[2025-09-09 10:09:46] 🚪 Modal de escaneo de huella cerrado después de login exitoso
+[2025-09-09 10:09:46] Obtenidos 6 ambientes disponibles
+[2025-09-09 10:10:00] ✅ Sensor biométrico conectado y verificado
+[2025-09-09 10:10:00] 📱 Iniciando captura de huella digital...
+[2025-09-09 10:10:02] ✅ Huella capturada y convertida correctamente
+[2025-09-09 10:10:02] 🔍 Comparando huella capturada con candidatos de SICEFA...
+[2025-09-09 10:10:04] ✅ Identificación exitosa: JULIO JARAMILLO (ID: 2) con puntuación 139
+[2025-09-09 10:10:04] ❌ Acceso denegado: JULIO JARAMILLO no es administrative
+[2025-09-09 10:10:26] ✅ Sensor biométrico conectado y verificado
+[2025-09-09 10:10:26] 📱 Iniciando captura de huella digital...
+[2025-09-09 10:10:28] ✅ Huella capturada y convertida correctamente
+[2025-09-09 10:10:28] 🔍 Comparando huella capturada con candidatos de SICEFA...
+[2025-09-09 10:10:30] ❌ Huella no reconocida en el sistema
+[2025-09-09 10:11:00] ❌ Escaneo de huella cancelado por el usuario
+[2025-09-09 10:18:09] ✅ Sensor biométrico conectado y verificado
+[2025-09-09 10:18:09] 📱 Iniciando captura de huella digital...
+[2025-09-09 10:18:11] ✅ Huella capturada y convertida correctamente
+[2025-09-09 10:18:11] 🔍 Comparando huella capturada con candidatos de SICEFA...
+[2025-09-09 10:18:14] ❌ Huella no reconocida en el sistema
+[2025-09-09 10:18:20] ✅ Sensor biométrico conectado y verificado
+[2025-09-09 10:18:20] 📱 Iniciando captura de huella digital...
+[2025-09-09 10:18:21] ✅ Huella capturada y convertida correctamente
+[2025-09-09 10:18:21] 🔍 Comparando huella capturada con candidatos de SICEFA...
+[2025-09-09 10:18:24] ✅ Identificación exitosa: FELIPE MARTINEZ (ID: 8) con puntuación 63
+[2025-09-09 10:18:24] 🔐 Acceso de ADMINISTRADOR concedido
+[2025-09-09 10:18:26] 🚪 Modal de escaneo de huella cerrado después de login exitoso
+[2025-09-09 10:18:28] ✅ Datos de personal cargados correctamente
+[2025-09-09 10:18:29] ✅ Lector biométrico conectado en COM3 con baudrate 57600
