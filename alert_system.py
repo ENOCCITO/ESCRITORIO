@@ -2,16 +2,15 @@
 # -*- coding: utf-8 -*-
 """
 alert_system.py
-- Sistema de alertas elegantes para el sistema biométrico
+- Sistema de alertas elegantes para el sistema biométrico (sin Tkinter)
 - Integración con SweetAlert2 para notificaciones profesionales
 """
 
-import tkinter as tk
-from tkinter import messagebox
 import webbrowser
 import json
 import os
 from typing import Optional, Dict, Any
+from PySide6.QtWidgets import QMessageBox
 
 class AlertSystem:
     """Sistema de alertas elegantes para el sistema biométrico"""
@@ -61,8 +60,8 @@ class AlertSystem:
         }
         
         @keyframes grid-move {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(50px, 50px); }
+            0% { opacity: 0.3; }
+            100% { opacity: 0.8; }
         }
         
         .cyber-particles {
@@ -83,7 +82,6 @@ class AlertSystem:
         
         @keyframes float {
             0% {
-                transform: translateY(100vh) translateX(0);
                 opacity: 0;
             }
             10% {
@@ -93,7 +91,6 @@ class AlertSystem:
                 opacity: 1;
             }
             100% {
-                transform: translateY(-100px) translateX(100px);
                 opacity: 0;
             }
         }
@@ -347,7 +344,6 @@ class AlertSystem:
             }
             
             .swal2-confirm:hover {
-                transform: translateY(-2px) !important;
                 box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4) !important;
             }
         `;
@@ -475,20 +471,24 @@ class AlertSystem:
         role_name = role_names.get(role, role.upper())
         user_text = f"\n\nUsuario identificado: {user_name}" if user_name else ""
         
-        messagebox.showerror(
+        QMessageBox.critical(None,
             "🚫 ACCESO DENEGADO",
-            f"Esta huella no corresponde a un {role_name}\n\n"
-            f"La huella digital escaneada no tiene permisos para acceder al módulo de {role_name}.\n"
-            f"Por favor, contacte al administrador del sistema para obtener los permisos necesarios.{user_text}"
+            (
+                f"Esta huella no corresponde a un {role_name}\n\n"
+                f"La huella digital escaneada no tiene permisos para acceder al módulo de {role_name}.\n"
+                f"Por favor, contacte al administrador del sistema para obtener los permisos necesarios.{user_text}"
+            )
         )
     
     def _fallback_fingerprint_not_found_alert(self):
         """Fallback usando messagebox si hay error con SweetAlert2"""
-        messagebox.showwarning(
+        QMessageBox.warning(None,
             "🔍 HUELLA NO RECONOCIDA",
-            "Huella digital no encontrada en el sistema\n\n"
-            "La huella digital escaneada no se encuentra registrada en la base de datos del sistema.\n"
-            "Por favor, asegúrese de que su huella esté registrada en el sistema o contacte al administrador."
+            (
+                "Huella digital no encontrada en el sistema\n\n"
+                "La huella digital escaneada no se encuentra registrada en la base de datos del sistema.\n"
+                "Por favor, asegúrese de que su huella esté registrada en el sistema o contacte al administrador."
+            )
         )
     
     def _fallback_access_granted_alert(self, role: str, user_name: str):
@@ -503,12 +503,14 @@ class AlertSystem:
         
         role_name = role_names.get(role, role.upper())
         
-        messagebox.showinfo(
+        QMessageBox.information(None,
             "✅ ACCESO CONCEDIDO",
-            f"Bienvenido, {user_name}\n\n"
-            f"Verificación de identidad exitosa\n"
-            f"Acceso concedido al módulo de {role_name}.\n"
-            f"Iniciando interfaz del sistema..."
+            (
+                f"Bienvenido, {user_name}\n\n"
+                f"Verificación de identidad exitosa\n"
+                f"Acceso concedido al módulo de {role_name}.\n"
+                f"Iniciando interfaz del sistema..."
+            )
         )
     
     def cleanup(self):

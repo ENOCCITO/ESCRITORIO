@@ -361,9 +361,10 @@ def get_daily_schedule(date=None) -> List[Dict[str, Any]]:
             results = cur.fetchall()
             cur.close()
             
-            # Si no hay datos reales, usar datos de ejemplo mejorados
+            # Si no hay datos reales, devolver lista vacía
             if not results:
-                return get_sample_schedule_data(date)
+                print(f"📭 No hay asignaciones de llaves para la fecha: {date}")
+                return []
             
             # Procesar datos reales
             schedule_data = []
@@ -387,8 +388,76 @@ def get_daily_schedule(date=None) -> List[Dict[str, Any]]:
             
     except Exception as e:
         print(f"❌ Error obteniendo programación real: {e}")
-        # Retornar datos de ejemplo si hay error
-        return get_sample_schedule_data(date)
+        return []
+
+def get_weekly_schedule() -> List[Dict[str, Any]]:
+    """Obtiene la programación semanal (lunes a viernes) desde la tabla programaciones"""
+    try:
+        with db_connect() as cnx:
+            cur = cnx.cursor(dictionary=True)
+            
+            # Consulta para obtener programación de lunes a viernes
+            query = """
+                SELECT 
+                    pr.id,
+                    pr.dia_semana,
+                    pr.hora_inicio,
+                    pr.hora_fin,
+                    pr.tipo_programacion,
+                    pr.activo,
+                    pr.notas,
+                    CONCAT(p.nombres, ' ', p.apellidos) as instructor_nombre,
+                    a.nombre as ambiente_nombre,
+                    a.descripcion as ambiente_descripcion,
+                    tp.nombre as tipo_personal
+                FROM programaciones pr
+                JOIN personal p ON pr.personal_id = p.id
+                JOIN ambientes a ON pr.ambiente_id = a.id
+                JOIN tipos_personal tp ON p.tipo_personal_id = tp.id
+                WHERE pr.dia_semana IN ('LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES')
+                  AND pr.activo = 1
+                  AND tp.nombre = 'INSTRUCTOR'
+                ORDER BY 
+                    CASE pr.dia_semana
+                        WHEN 'LUNES' THEN 1
+                        WHEN 'MARTES' THEN 2
+                        WHEN 'MIERCOLES' THEN 3
+                        WHEN 'JUEVES' THEN 4
+                        WHEN 'VIERNES' THEN 5
+                    END,
+                    pr.hora_inicio ASC
+            """
+            
+            cur.execute(query)
+            results = cur.fetchall()
+            cur.close()
+            
+            if not results:
+                print("📭 No hay programación en la base de datos")
+                return []
+            
+            # Procesar datos reales
+            schedule_data = []
+            for row in results:
+                schedule_data.append({
+                    'id': row['id'],
+                    'dia_semana': row['dia_semana'],
+                    'instructor': row['instructor_nombre'],
+                    'ambiente': row['ambiente_nombre'],
+                    'programa_formacion': f"{row['ambiente_descripcion']} - {row['tipo_programacion']}",
+                    'hora_inicio': str(row['hora_inicio'])[:5],  # Formato HH:MM
+                    'hora_fin': str(row['hora_fin'])[:5],  # Formato HH:MM
+                    'tipo_programacion': row['tipo_programacion'],
+                    'notas': row['notas'] or '',
+                    'tipo_personal': row['tipo_personal']
+                })
+            
+            print(f"✅ Programación cargada: {len(schedule_data)} elementos")
+            return schedule_data
+            
+    except Exception as e:
+        print(f"❌ Error obteniendo programación: {e}")
+        return []
 
 def get_sample_schedule_data(date) -> List[Dict[str, Any]]:
     """Datos de ejemplo mejorados para la programación"""
@@ -510,4 +579,50 @@ def get_database_info() -> Dict[str, Any]:
             
     except Exception as e:
         print(f"❌ Error obteniendo información de la base de datos: {e}")
+        return {}
+
+
+def get_instructor_week_schedule(personal_id: int) -> Dict[str, List[Dict[str, Any]]]:
+    """Obtiene programación semanal del instructor desde `programaciones`.
+    Retorna un dict por día con items: { 'inicio': 'HH:MM', 'fin': 'HH:MM', 'ambiente': str, 'tipo': str }
+    """
+    order = ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO']
+    out: Dict[str, List[Dict[str, Any]]] = {d: [] for d in order}
+    try:
+        with db_connect() as cnx:
+            cur = cnx.cursor(dictionary=True)
+            cur.execute(
+                """
+                SELECT p.dia_semana, p.hora_inicio, p.hora_fin, p.tipo_programacion,
+                       a.id AS ambiente_id, a.nombre AS ambiente_nombre
+                FROM programaciones p
+                JOIN ambientes a ON a.id = p.ambiente_id
+                WHERE p.personal_id = %s AND (p.activo = 1 OR p.activo IS NULL)
+                ORDER BY FIELD(p.dia_semana,'LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO','DOMINGO'), p.hora_inicio
+                """,
+                (personal_id,)
+            )
+            rows = cur.fetchall() or []
+            cur.close()
+        for r in rows:
+            day = (r.get('dia_semana') or '').upper()
+            if day not in out:
+                out[day] = []
+            def _fmt(t):
+                try:
+                    return str(r[t])[:5]
+                except Exception:
+                    val = r.get(t)
+                    return val.strftime('%H:%M') if hasattr(val, 'strftime') else (val or '')
+            out[day].append({
+                'inicio': _fmt('hora_inicio'),
+                'fin': _fmt('hora_fin'),
+                'ambiente': r.get('ambiente_nombre') or '',
+                'ambiente_id': r.get('ambiente_id'),
+                'tipo': r.get('tipo_programacion') or ''
+            })
+        # limpiar días sin items
+        return {d: out[d] for d in order if out.get(d)}
+    except Exception as e:
+        print(f"❌ Error obteniendo programación semanal del instructor {personal_id}: {e}")
         return {}

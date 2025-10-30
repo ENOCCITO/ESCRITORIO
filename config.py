@@ -13,14 +13,26 @@ DB_CONFIG = dict(host="localhost", user="root", password="", database="sistema_l
 FINGERPRINT_PORT_DEFAULT = "COM3"
 FINGERPRINT_BAUD_DEFAULT = 57600
 
-ARDUINO_PORT_DEFAULT = "COM8"
+ARDUINO_PORT_DEFAULT = "COM4"
 ARDUINO_BAUD_DEFAULT = 115200
+
+# ============ CALIBRACIÓN MECÁNICA (PASOS) ============
+# Pasos nativos del motor por vuelta
+STEPS_PER_REV = 200
+# 1 para full-step (L298N con secuencia de 4 estados), 2 si usas half‑step de 8 estados
+MICROSTEP_FACTOR = 1
+# Relación de transmisión rueda/motor calibrada: 1360 pasos por vuelta / (200*1) = 6.8
+GEAR_RATIO = 6.8
+
+# ============ COMPORTAMIENTO DE MOVIMIENTO ============
+# Si True, tras abrir la llave vuelve automáticamente a HOME
+AUTO_HOME_AFTER_OPEN = True
 
 # ============ CONFIGURACIÓN DEL SISTEMA ============
 DEFAULT_THRESHOLD = 50
 DEFAULT_TOPN = 5
 DEFAULT_TIMEOUT_S = 30
-DEFAULT_DWELL = 10  # segundos
+DEFAULT_DWELL = 2  # segundos (mantener 2s antes de volver a HOME)
 LOG_FILE = "dispenser.log"
 
 # ============ CONFIGURACIÓN DE INTERFAZ ============

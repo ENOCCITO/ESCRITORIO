@@ -2,185 +2,128 @@
 # -*- coding: utf-8 -*-
 """
 admin_interface.py
-- Interfaz de administrador del sistema de dispensación biométrica
-- Gestión de ambientes y registro de huellas
+- Interfaz de administrador (PySide6)
 """
 
-import tkinter as tk
-from tkinter import messagebox
+from PySide6.QtWidgets import QWidget, QDialog, QVBoxLayout, QHBoxLayout, QLabel, QMessageBox, QScrollArea, QSizePolicy
+from PySide6.QtGui import QFont
+from PySide6.QtCore import Qt
 import styles
 from config import *
 from utils import *
-from fingerprint_registration_interface import show_fingerprint_registration_interface
+# from fingerprint_registration_interface import show_fingerprint_registration_interface
 
 class AdminInterface:
     def __init__(self, parent):
         self.parent = parent
-        
+
     def show_admin_interface(self):
-        """Muestra la interfaz de administrador con dos botones como en la imagen"""
-        # Crear ventana principal de administrador
         admin_win = styles.create_modal_window(self.parent, "🔐 INTERFAZ DE ADMINISTRADOR - SISTEMA CEFA", ADMIN_WINDOW_SIZE)
-        
-        # Contenedor principal
-        main_container = styles.create_main_frame(admin_win)
-        main_container.pack(fill="both", expand=True, padx=40, pady=40)
-        
-        # Título de bienvenida
-        welcome_label = styles.create_title_label(main_container, "¡BIENVENIDO ADMINISTRADOR!")
-        welcome_label.pack(pady=(0, 40))
-        
-        # Contenedor para los dos botones
-        buttons_container = styles.create_main_frame(main_container)
-        buttons_container.pack(expand=True)
-        
-        # Primer botón: Seleccionar Ambiente
-        select_env_btn = styles.create_futuristic_button(
-            buttons_container, 
-            "Seleccionar Ambiente", 
-            lambda: self._show_environment_selection(admin_win)
-        )
-        
-        # Aplicar efectos de hover
-        styles.apply_button_hover_effects(select_env_btn)
-        select_env_btn.pack(pady=(0, 30))
-        
-        # Segundo botón: Registrar Huella
-        register_fp_btn = styles.create_futuristic_button(
-            buttons_container, 
-            "Registrar Huella", 
-            lambda: self._show_fingerprint_registration(admin_win)
-        )
-        
-        # Aplicar efectos de hover
-        styles.apply_button_hover_effects(register_fp_btn)
-        register_fp_btn.pack()
-        
-        # Botón de cerrar sesión
-        logout_btn = styles.create_danger_button(
-            main_container, 
-            "🚪 CERRAR SESIÓN", 
-            admin_win.destroy
-        )
-        logout_btn.pack(side="bottom", pady=(20, 0))
-        
-        # Centrar la ventana
+
+        layout = QVBoxLayout(admin_win)
+        layout.setContentsMargins(40, 40, 40, 40)
+        layout.setSpacing(20)
+
+        welcome_label = styles.create_title_label(admin_win, "¡BIENVENIDO ADMINISTRADOR!")
+        layout.addWidget(welcome_label)
+
+        buttons_row = styles.create_main_frame(admin_win)
+        buttons_layout = QVBoxLayout(buttons_row)
+        select_env_btn = styles.create_futuristic_button(buttons_row, "🏢  Seleccionar Ambiente", lambda: self._show_environment_selection(admin_win))
+        register_fp_btn = styles.create_futuristic_button(buttons_row, "👆  Registrar Huella", lambda: self._show_fingerprint_registration(admin_win))
+        buttons_layout.addWidget(select_env_btn)
+        buttons_layout.addWidget(register_fp_btn)
+        layout.addWidget(buttons_row)
+
+        logout_btn = styles.create_danger_button(admin_win, "🚪 CERRAR SESIÓN", admin_win.close)
+        layout.addWidget(logout_btn)
+
         styles.center_window(admin_win)
+        admin_win.show()
 
     def _show_environment_selection(self, parent_window):
         """Muestra la interfaz de selección de ambientes con cuadrícula 4x3"""
         # Ocultar la ventana padre
-        parent_window.withdraw()
+        parent_window.hide()
         
         # Crear ventana de selección de ambientes
         env_win = styles.create_modal_window(self.parent, "🏢 SELECCIÓN DE AMBIENTES - SISTEMA CEFA", ENVIRONMENT_WINDOW_SIZE)
-        
-        # Título
-        title_label = styles.create_title_label(env_win, "🏢 SELECCIÓN DE AMBIENTES")
-        title_label.pack(pady=(20, 10))
-        
-        subtitle_label = styles.create_subtitle_label(env_win, "Seleccione el ambiente que desea gestionar")
-        subtitle_label.pack(pady=(0, 30))
-        
-        # Contenedor principal para la cuadrícula de botones
-        grid_container = styles.create_main_frame(env_win)
-        grid_container.pack(expand=True, padx=40, pady=20)
-        
-        # Configurar el grid 4x3
-        for i in range(4):
-            grid_container.grid_rowconfigure(i, weight=1)
-        for i in range(3):
-            grid_container.grid_columnconfigure(i, weight=1)
-        
-        # Obtener ambientes reales de la base de datos
+        outer = QVBoxLayout(env_win)
+        outer.setContentsMargins(40, 20, 40, 20)
+        outer.setSpacing(12)
+        outer.addWidget(styles.create_title_label(env_win, "🏢 SELECCIÓN DE AMBIENTES"))
+        outer.addWidget(styles.create_subtitle_label(env_win, "Seleccione el ambiente que desea gestionar"))
+
+        scroll = QScrollArea(env_win)
+        scroll.setWidgetResizable(True)
+        grid_holder = styles.create_main_frame(scroll)
+        grid_layout = QVBoxLayout(grid_holder)
+        grid_layout.setSpacing(12)
+        grid_layout.setContentsMargins(0, 0, 0, 0)
         from utils import get_available_environments
         ambientes_reales = get_available_environments()
-        
         if not ambientes_reales:
-            # Si no hay ambientes en la BD, mostrar mensaje
-            no_env_label = styles.create_subtitle_label(grid_container, "No hay ambientes disponibles en la base de datos")
-            no_env_label.grid(row=0, column=0, columnspan=3, pady=50)
+            grid_layout.addWidget(styles.create_subtitle_label(grid_holder, "No hay ambientes disponibles en la base de datos"))
         else:
-            # Crear botones de ambientes reales con estilo futurista
-            for i, ambiente in enumerate(ambientes_reales):
-                row = i // 3
-                col = i % 3
-                
-                # Extraer información del ambiente
+            # Render simple en lista vertical de botones (equivalente funcional)
+            # Escala responsive para alturas y tipografía
+            try:
+                sw = env_win.screen().availableGeometry().width()
+                scale = max(0.6, min(1.6, sw / 1920.0))
+            except Exception:
+                scale = 1.0
+
+            for ambiente in ambientes_reales:
                 ambiente_id, nombre, descripcion, tipo, ubicacion, piso, edificio = ambiente
-                
-                # Construir texto del botón
-                button_text = nombre
-                if ubicacion:
-                    button_text += f"\n{ubicacion}"
-                
-                env_btn = styles.create_futuristic_button(
-                    grid_container, 
-                    button_text, 
+                subtitle = f"Ubicación: {ubicacion}" if ubicacion else ""
+                row = styles.create_clickable_row(
+                    grid_holder,
+                    nombre,
+                    subtitle,
                     lambda aid=ambiente_id, name=nombre: self._select_environment(name, aid),
-                    width=15, 
-                    height=2
+                    min_height=int(84 * scale)
                 )
+                grid_layout.addWidget(row)
                 
-                # Aplicar efectos de hover
-                styles.apply_button_hover_effects(env_btn)
-                env_btn.grid(row=row, column=col, padx=15, pady=15, sticky="nsew")
-        
-        # Botones de control
-        control_frame = styles.create_main_frame(env_win)
-        control_frame.pack(fill="x", padx=40, pady=20)
-        
-        # Botón para volver
-        back_btn = styles.create_warning_button(
-            control_frame, 
-            "⬅️ VOLVER", 
-            lambda: self._back_to_admin_interface(env_win, parent_window)
-        )
-        back_btn.pack(side="left")
-        
-        # Botón para cerrar
-        close_btn = styles.create_danger_button(
-            control_frame, 
-            "❌ CERRAR", 
-            env_win.destroy
-        )
-        close_btn.pack(side="right")
-        
-        # Centrar la ventana
+                # Separador sutil entre botones
+                spacer = QWidget(grid_holder)
+                spacer.setFixedHeight(2)
+                grid_layout.addWidget(spacer)
+        # Evitar obligar ancho mínimo que genere scroll horizontal
+        scroll.setWidget(grid_holder)
+        outer.addWidget(scroll)
+
+        controls = styles.create_main_frame(env_win)
+        controls_layout = QHBoxLayout(controls)
+        back_btn = styles.create_warning_button(controls, "⬅️ VOLVER", lambda: self._back_to_admin_interface(env_win, parent_window))
+        close_btn = styles.create_danger_button(controls, "❌ CERRAR", env_win.close)
+        controls_layout.addWidget(back_btn)
+        controls_layout.addWidget(close_btn)
+        outer.addWidget(controls)
+
         styles.center_window(env_win)
+        env_win.show()
 
     def _show_fingerprint_registration(self, parent_window):
         """Muestra la interfaz de registro de huellas responsive"""
         try:
-            # Mostrar la nueva interfaz de registro de huellas
-            interface = show_fingerprint_registration_interface(self.parent)
-            
-            # Ocultar la ventana padre después de que la nueva ventana esté lista
-            def hide_parent():
-                parent_window.withdraw()
-            
-            # Programar el ocultamiento de la ventana padre
-            self.parent.after(100, hide_parent)
-            
+            from fingerprint_registration_interface import show_fingerprint_registration_interface
+            show_fingerprint_registration_interface(self.parent)
+            QTimer = __import__('PySide6.QtCore', fromlist=['Qt']).QTimer
+            QTimer.singleShot(100, parent_window.hide)
         except Exception as e:
             print(f"❌ Error mostrando interfaz de registro de huellas: {e}")
-            messagebox.showerror("Error", f"Error mostrando interfaz de registro de huellas:\n{e}")
-            # Mostrar ventana padre en caso de error
-            parent_window.deiconify()
+            QMessageBox.critical(self.parent, "Error", f"Error mostrando interfaz de registro de huellas:\n{e}")
+            parent_window.show()
 
     def _select_environment(self, env_name, ambiente_id=None):
         """Maneja la selección de un ambiente"""
         if ambiente_id:
-            messagebox.showinfo("🏢 AMBIENTE SELECCIONADO", 
-                               f"Ha seleccionado: {env_name}\n"
-                               f"ID del ambiente: {ambiente_id}\n\n"
-                               "El sistema está configurado para gestionar este ambiente.\n"
-                               "¿Desea proceder con la configuración?")
+            QMessageBox.information(self.parent, "🏢 AMBIENTE SELECCIONADO",
+                                    f"Ha seleccionado: {env_name}\nID del ambiente: {ambiente_id}\n\nEl sistema está configurado para gestionar este ambiente.\n¿Desea proceder con la configuración?")
         else:
-            messagebox.showinfo("🏢 AMBIENTE SELECCIONADO", 
-                               f"Ha seleccionado: {env_name}\n\n"
-                               "El sistema está configurado para gestionar este ambiente.\n"
-                               "¿Desea proceder con la configuración?")
+            QMessageBox.information(self.parent, "🏢 AMBIENTE SELECCIONADO",
+                                    f"Ha seleccionado: {env_name}\n\nEl sistema está configurado para gestionar este ambiente.\n¿Desea proceder con la configuración?")
         
         # Aquí se podría integrar con la lógica del sistema original
         # para configurar el ambiente seleccionado
@@ -209,8 +152,8 @@ class AdminInterface:
     def _create_user_list_item(self, container, user, index):
         """Crea un elemento de la lista de usuarios"""
         # Frame para cada usuario
+        # Este método no se usa en PySide6 migrado aún; mantenido por compatibilidad lógica.
         user_frame = styles.create_content_frame(container)
-        user_frame.pack(fill="x", pady=2, padx=10)
         
         # Avatar (círculo con inicial)
         avatar_frame = styles.create_main_frame(user_frame)

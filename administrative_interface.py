@@ -2,263 +2,485 @@
 # -*- coding: utf-8 -*-
 """
 administrative_interface.py
-- Interfaz de administrativo del sistema de dispensación biométrica
-- Gestión administrativa del campus
+- Interfaz administrativa (PySide6)
 """
 
-import tkinter as tk
-from tkinter import messagebox
 import styles
 from config import *
 from utils import *
+from PySide6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QWidget, QMessageBox, 
+                               QPushButton, QScrollArea, QFrame, QGridLayout, QSpacerItem, 
+                               QSizePolicy)
+from PySide6.QtCore import Qt
 
 class AdministrativeInterface:
     def __init__(self, parent):
         self.parent = parent
-        
+
     def show_administrative_interface(self):
-        """Muestra la interfaz de administrativo con ambientes asignados"""
-        # Crear ventana principal de administrativo optimizada para 7 pulgadas
-        admin_win = styles.create_modal_window(self.parent, "📋 INTERFAZ ADMINISTRATIVA - SISTEMA CEFA", "800x600")
+        # Crear ventana principal con tamaño dinámico y responsive
+        admin_win = styles.create_modal_window(self.parent, "📋 INTERFAZ ADMINISTRATIVA - SISTEMA CEFA", "1200x800")
         
-        # Configurar para pantalla de 7 pulgadas
-        admin_win.configure(bg="#0a0a0a")
+        # Calcular tamaño responsive basado en la pantalla
+        try:
+            screen = admin_win.screen().availableGeometry()
+            screen_width = screen.width()
+            screen_height = screen.height()
+            
+            # Calcular escala para pantallas de 7" a 55"
+            # Pantalla de 7" típica: ~800x480, Pantalla de 55" típica: ~3840x2160
+            min_width = 800
+            max_width = min(screen_width * 0.9, 1920)  # Máximo 90% de pantalla o 1920px
+            min_height = 600
+            max_height = min(screen_height * 0.9, 1080)  # Máximo 90% de pantalla o 1080px
+            
+            # Tamaño base responsive
+            base_width = max(min_width, min(max_width, int(screen_width * 0.7)))
+            base_height = max(min_height, min(max_height, int(screen_height * 0.8)))
+            
+            admin_win.resize(base_width, base_height)
+            admin_win.setMinimumSize(min_width, min_height)
+            admin_win.setMaximumSize(max_width, max_height)
+            
+            print(f"📱 Pantalla detectada: {screen_width}x{screen_height}")
+            print(f"📱 Ventana administrativa: {base_width}x{base_height}")
+            
+        except Exception as e:
+            print(f"⚠️ Error calculando tamaño responsive: {e}")
+            admin_win.setMinimumSize(800, 600)
         
-        # Contenedor principal con padding optimizado
-        main_container = tk.Frame(admin_win, bg="#0a0a0a")
-        main_container.pack(fill="both", expand=True, padx=20, pady=15)
+        # Layout principal con scroll
+        main_layout = QVBoxLayout(admin_win)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
         
-        # Header con título y efectos
-        self._create_administrative_header(main_container)
+        # Crear área de scroll
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+            QScrollBar:vertical {
+                background-color: #2a2a2a;
+                width: 12px;
+                border-radius: 6px;
+            }
+            QScrollBar::handle:vertical {
+                background-color: #00bcd4;
+                border-radius: 6px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background-color: #00acc1;
+            }
+        """)
         
-        # Contenedor de información principal
-        info_container = tk.Frame(main_container, bg="#0a0a0a")
-        info_container.pack(fill="both", expand=True, pady=(20, 0))
+        # Widget contenido responsive
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
         
-        # Mostrar ambientes asignados
-        self._show_assigned_environments(info_container)
+        # Márgenes responsive basados en el tamaño de pantalla
+        try:
+            margin_base = max(10, min(30, int(base_width * 0.02)))
+            spacing_base = max(10, min(25, int(base_height * 0.02)))
+            content_layout.setContentsMargins(margin_base, margin_base, margin_base, margin_base)
+            content_layout.setSpacing(spacing_base)
+        except Exception:
+            content_layout.setContentsMargins(20, 20, 20, 20)
+            content_layout.setSpacing(20)
         
-        # Footer con botón de cerrar sesión
-        self._create_administrative_footer(main_container, admin_win)
+        # Header con gradiente
+        self._create_modern_header(content_widget, content_layout)
         
-        # Centrar la ventana
+        # Contenido principal
+        self._create_main_content(content_widget, content_layout)
+        
+        # Footer
+        self._create_modern_footer(content_widget, content_layout)
+        
+        scroll_area.setWidget(content_widget)
+        main_layout.addWidget(scroll_area)
+        
         styles.center_window(admin_win)
+        admin_win.show()
 
-    def _create_administrative_header(self, parent_container):
-        """Crea el header futurista para la interfaz administrativa"""
-        # Frame del header
-        header_frame = tk.Frame(parent_container, bg="#0a0a0a")
-        header_frame.pack(fill="x", pady=(0, 20))
+    def _create_modern_header(self, parent, layout):
+        """Crea un header moderno responsive con gradiente"""
+        # Calcular escala responsive
+        try:
+            screen_width = parent.window().screen().availableGeometry().width()
+            scale_factor = max(0.7, min(1.5, screen_width / 1200.0))
+        except Exception:
+            scale_factor = 1.0
         
-        # Título principal con efectos
-        title_frame = tk.Frame(header_frame, bg="#0a0a0a")
-        title_frame.pack(expand=True)
+        header_frame = QFrame()
+        header_frame.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #1a1a2e, stop:1 #16213e);
+                border-radius: 15px;
+                margin: 5px;
+            }
+        """)
         
-        # Icono administrativo
-        admin_icon = tk.Label(
-            title_frame,
-            text="📋",
-            font=("Arial", 48, "bold"),
-            bg="#0a0a0a",
-            fg="#00d4ff"
-        )
-        admin_icon.pack()
+        # Altura responsive
+        header_height = max(80, int(120 * scale_factor))
+        header_frame.setMinimumHeight(header_height)
         
-        # Título principal
-        welcome_label = tk.Label(
-            title_frame,
-            text="¡BIENVENIDO PERSONAL ADMINISTRATIVO!",
-            font=("Arial", 20, "bold"),
-            bg="#0a0a0a",
-            fg="#00d4ff"
-        )
-        welcome_label.pack(pady=(10, 0))
+        # Márgenes responsive
+        margin_size = max(20, int(30 * scale_factor))
+        padding_size = max(15, int(20 * scale_factor))
         
-        # Línea decorativa
-        line_frame = tk.Frame(header_frame, bg="#00d4ff", height=2)
-        line_frame.pack(fill="x", pady=(15, 0))
+        header_layout = QVBoxLayout(header_frame)
+        header_layout.setContentsMargins(margin_size, padding_size, margin_size, padding_size)
+        header_layout.setSpacing(max(8, int(10 * scale_factor)))
         
-        # Efecto de brillo
-        glow_frame = tk.Frame(header_frame, bg="#00d4ff", height=1)
-        glow_frame.pack(fill="x")
-        glow_frame.configure(relief="raised", bd=1)
-
-    def _show_assigned_environments(self, parent_container):
-        """Muestra los ambientes asignados al personal administrativo"""
-        # Frame principal de ambientes
-        environments_main_frame = tk.Frame(parent_container, bg="#0a0a0a")
-        environments_main_frame.pack(fill="both", expand=True)
+        # Icono y título principal responsive
+        title_container = QHBoxLayout()
         
-        # Título de ambientes
-        environments_title_frame = tk.Frame(environments_main_frame, bg="#0a0a0a")
-        environments_title_frame.pack(fill="x", pady=(0, 15))
+        # Tamaños responsive para el icono
+        icon_size = max(60, int(80 * scale_factor))
+        icon_font_size = max(32, int(48 * scale_factor))
         
-        # Icono y título
-        environments_icon = tk.Label(
-            environments_title_frame,
-            text="🏢",
-            font=("Arial", 20),
-            bg="#0a0a0a",
-            fg="#00ff88"
-        )
-        environments_icon.pack(side="left")
+        icon_label = QLabel("📋")
+        icon_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {icon_font_size}px;
+                color: #00bcd4;
+                background-color: rgba(0, 188, 212, 0.1);
+                border-radius: {icon_size//3}px;
+                padding: {max(12, int(15 * scale_factor))}px;
+                min-width: {icon_size}px;
+                max-width: {icon_size}px;
+                min-height: {icon_size}px;
+                max-height: {icon_size}px;
+            }}
+        """)
+        icon_label.setAlignment(Qt.AlignCenter)
         
-        environments_title = tk.Label(
-            environments_title_frame,
-            text="AMBIENTES ASIGNADOS",
-            font=("Arial", 16, "bold"),
-            bg="#0a0a0a",
-            fg="#00ff88"
-        )
-        environments_title.pack(side="left", padx=(10, 0))
+        # Título responsive
+        title_font_size = max(20, int(28 * scale_factor))
+        title_text = QLabel("¡BIENVENIDO PERSONAL ADMINISTRATIVO!")
+        title_text.setStyleSheet(f"""
+            QLabel {{
+                font-size: {title_font_size}px;
+                font-weight: bold;
+                color: #ffffff;
+                background-color: transparent;
+                padding: {max(8, int(10 * scale_factor))}px;
+            }}
+        """)
+        title_text.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        title_text.setWordWrap(True)  # Permitir salto de línea en pantallas pequeñas
         
-        # Frame de ambientes con borde futurista
-        environments_frame = tk.Frame(
-            environments_main_frame,
-            bg="#1a1a2e",
-            relief="raised",
-            bd=2
-        )
-        environments_frame.pack(fill="both", expand=True)
+        title_container.addWidget(icon_label)
+        title_container.addWidget(title_text)
+        title_container.addStretch()
         
-        # Obtener ambientes de la base de datos
+        header_layout.addLayout(title_container)
+        layout.addWidget(header_frame)
+    
+    def _create_main_content(self, parent, layout):
+        """Crea el contenido principal con grid responsive"""
+        # Calcular escala responsive para fuentes y espaciado
+        try:
+            screen_width = parent.window().screen().availableGeometry().width()
+            scale_factor = max(0.7, min(1.5, screen_width / 1200.0))
+            font_size = max(16, min(28, int(24 * scale_factor)))
+            padding_size = max(10, min(25, int(15 * scale_factor)))
+        except Exception:
+            scale_factor = 1.0
+            font_size = 24
+            padding_size = 15
+        
+        # Título de sección responsive
+        section_title = QLabel("🏢 AMBIENTES ASIGNADOS")
+        section_title.setStyleSheet(f"""
+            QLabel {{
+                font-size: {font_size}px;
+                font-weight: bold;
+                color: #00bcd4;
+                background-color: rgba(0, 188, 212, 0.1);
+                padding: {padding_size}px {padding_size + 10}px;
+                border-radius: 10px;
+                margin: 10px 0;
+            }}
+        """)
+        layout.addWidget(section_title)
+        
+        # Contenedor de ambientes con grid responsive
+        environments_container = QFrame()
+        environments_container.setStyleSheet("""
+            QFrame {
+                background-color: transparent;
+                border: none;
+            }
+        """)
+        
+        environments_layout = QGridLayout(environments_container)
+        
+        # Espaciado responsive
+        spacing = max(10, min(25, int(20 * scale_factor)))
+        environments_layout.setSpacing(spacing)
+        environments_layout.setContentsMargins(0, 0, 0, 0)
+        
         environments = self._get_available_environments()
         
         if not environments:
-            # Mostrar mensaje si no hay ambientes
-            no_env_label = tk.Label(
-                environments_frame,
-                text="❌ No hay ambientes asignados en la base de datos",
-                font=("Arial", 14),
-                bg="#1a1a2e",
-                fg="#ff4444"
-            )
-            no_env_label.pack(expand=True)
+            no_envs_label = QLabel("❌ No hay ambientes asignados en la base de datos")
+            no_envs_label.setStyleSheet(f"""
+                QLabel {{
+                    font-size: {max(14, int(18 * scale_factor))}px;
+                    color: #ff6b6b;
+                    background-color: rgba(255, 107, 107, 0.1);
+                    padding: {max(20, int(30 * scale_factor))}px;
+                    border-radius: 15px;
+                    text-align: center;
+                }}
+            """)
+            no_envs_label.setAlignment(Qt.AlignCenter)
+            environments_layout.addWidget(no_envs_label, 0, 0, 1, 3)
         else:
-            # Crear scrollable frame para los ambientes
-            canvas = tk.Canvas(environments_frame, bg="#1a1a2e", highlightthickness=0)
-            scrollbar = tk.Scrollbar(environments_frame, orient="vertical", command=canvas.yview)
-            scrollable_frame = tk.Frame(canvas, bg="#1a1a2e")
+            # Calcular número de columnas responsive
+            # Pantallas pequeñas (7"): 1 columna
+            # Pantallas medianas (15-27"): 2 columnas  
+            # Pantallas grandes (32"+): 3 columnas
+            if screen_width < 1024:
+                cols = 1
+            elif screen_width < 1600:
+                cols = 2
+            else:
+                cols = 3
             
-            scrollable_frame.bind(
-                "<Configure>",
-                lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-            )
-            
-            canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-            canvas.configure(yscrollcommand=scrollbar.set)
-            
-            # Crear tarjetas para cada ambiente asignado
+            # Crear tarjetas en grid responsive
             for i, env in enumerate(environments):
                 env_id, nombre, descripcion, tipo_ambiente, ubicacion, piso, edificio = env
+                card = self._create_environment_card(environments_container, env_id, nombre, descripcion, ubicacion, piso, edificio, scale_factor)
                 
-                # Frame para cada ambiente
-                env_frame = tk.Frame(
-                    scrollable_frame,
-                    bg="#2a2a3e",
-                    relief="raised",
-                    bd=1
-                )
-                env_frame.pack(fill="x", padx=10, pady=8)
-                
-                # Header del ambiente
-                env_header_frame = tk.Frame(env_frame, bg="#2a2a3e")
-                env_header_frame.pack(fill="x", padx=15, pady=(15, 5))
-                
-                # Nombre del ambiente
-                env_name_label = tk.Label(
-                    env_header_frame,
-                    text=f"🏢 {nombre}",
-                    font=("Arial", 14, "bold"),
-                    bg="#2a2a3e",
-                    fg="#00d4ff",
-                    anchor="w"
-                )
-                env_name_label.pack(side="left")
-                
-                # Tipo de ambiente
-                env_type_label = tk.Label(
-                    env_header_frame,
-                    text=f"🏗️ {tipo_ambiente}",
-                    font=("Arial", 12),
-                    bg="#2a2a3e",
-                    fg="#00ff88",
-                    anchor="e"
-                )
-                env_type_label.pack(side="right")
-                
-                # Información detallada del ambiente
-                info_frame = tk.Frame(env_frame, bg="#2a2a3e")
-                info_frame.pack(fill="x", padx=15, pady=(0, 10))
-                
-                # Ubicación
-                location_label = tk.Label(
-                    info_frame,
-                    text=f"📍 Ubicación: {ubicacion}",
-                    font=("Arial", 11),
-                    bg="#2a2a3e",
-                    fg="#ffffff",
-                    anchor="w"
-                )
-                location_label.pack(anchor="w")
-                
-                # Edificio y piso
-                building_text = f"🏢 Edificio: {edificio}" if edificio else "🏢 Edificio: No especificado"
-                if piso:
-                    building_text += f" | Piso: {piso}"
-                
-                building_label = tk.Label(
-                    info_frame,
-                    text=building_text,
-                    font=("Arial", 11),
-                    bg="#2a2a3e",
-                    fg="#ffffff",
-                    anchor="w"
-                )
-                building_label.pack(anchor="w")
-                
-                # Descripción si existe
-                if descripcion:
-                    desc_label = tk.Label(
-                        info_frame,
-                        text=f"📝 {descripcion}",
-                        font=("Arial", 10),
-                        bg="#2a2a3e",
-                        fg="#cccccc",
-                        anchor="w",
-                        wraplength=600
-                    )
-                    desc_label.pack(anchor="w", pady=(5, 0))
-                
-                # Botón de acceso al ambiente
-                access_btn = tk.Button(
-                    env_frame,
-                    text="🚪 ACCEDER AL AMBIENTE",
-                    font=("Arial", 11, "bold"),
-                    bg="#00d4ff",
-                    fg="#000000",
-                    relief="raised",
-                    bd=2,
-                    padx=20,
-                    pady=8,
-                    command=lambda eid=env_id, n=nombre: self._access_environment(eid, n),
-                    cursor="hand2"
-                )
-                access_btn.pack(pady=(0, 15), padx=15)
-                
-                # Efecto hover para el botón
-                def on_enter(e, btn=access_btn):
-                    btn.config(bg="#00ff88", relief="sunken")
-                
-                def on_leave(e, btn=access_btn):
-                    btn.config(bg="#00d4ff", relief="raised")
-                
-                access_btn.bind("<Enter>", on_enter)
-                access_btn.bind("<Leave>", on_leave)
-            
-            # Pack canvas y scrollbar
-            canvas.pack(side="left", fill="both", expand=True, padx=10, pady=10)
-            scrollbar.pack(side="right", fill="y")
+                # Calcular posición en grid responsive
+                row = i // cols
+                col = i % cols
+                environments_layout.addWidget(card, row, col)
+        
+        layout.addWidget(environments_container)
+    
+    def _create_environment_card(self, parent, env_id, nombre, descripcion, ubicacion, piso, edificio, scale_factor=1.0):
+        """Crea una tarjeta moderna responsive para cada ambiente"""
+        card = QFrame()
+        card.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #2a2a2a, stop:1 #1e1e1e);
+                border: 2px solid #00bcd4;
+                border-radius: 15px;
+                margin: 5px;
+            }
+            QFrame:hover {
+                border-color: #00acc1;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #333333, stop:1 #252525);
+            }
+        """)
+        
+        # Altura mínima responsive
+        min_height = max(150, int(200 * scale_factor))
+        card.setMinimumHeight(min_height)
+        
+        # Márgenes y espaciado responsive
+        margin_size = max(15, int(20 * scale_factor))
+        spacing_size = max(10, int(15 * scale_factor))
+        
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(margin_size, margin_size, margin_size, margin_size)
+        card_layout.setSpacing(spacing_size)
+        
+        # Header de la tarjeta responsive
+        header_layout = QHBoxLayout()
+        
+        # Tamaños responsive para el icono
+        icon_size = max(40, int(60 * scale_factor))
+        icon_font_size = max(20, int(32 * scale_factor))
+        
+        icon_label = QLabel("🏢")
+        icon_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {icon_font_size}px;
+                color: #00bcd4;
+                background-color: rgba(0, 188, 212, 0.2);
+                border-radius: {icon_size//3}px;
+                padding: {max(8, int(10 * scale_factor))}px;
+                min-width: {icon_size}px;
+                max-width: {icon_size}px;
+                min-height: {icon_size}px;
+                max-height: {icon_size}px;
+            }}
+        """)
+        icon_label.setAlignment(Qt.AlignCenter)
+        
+        # Título responsive
+        title_font_size = max(16, int(20 * scale_factor))
+        title_label = QLabel(nombre)
+        title_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: {title_font_size}px;
+                font-weight: bold;
+                color: #ffffff;
+                background-color: transparent;
+            }}
+        """)
+        title_label.setWordWrap(True)
+        
+        header_layout.addWidget(icon_label)
+        header_layout.addWidget(title_label)
+        header_layout.addStretch()
+        
+        card_layout.addLayout(header_layout)
+        
+        # Detalles del ambiente responsive
+        details_frame = QFrame()
+        details_frame.setStyleSheet(f"""
+            QFrame {{
+                background-color: rgba(0, 188, 212, 0.05);
+                border-radius: 10px;
+                padding: {max(8, int(10 * scale_factor))}px;
+            }}
+        """)
+        details_layout = QVBoxLayout(details_frame)
+        details_layout.setSpacing(max(6, int(8 * scale_factor)))
+        
+        # Tamaños de fuente responsive para detalles
+        detail_font_size = max(12, int(14 * scale_factor))
+        desc_font_size = max(11, int(13 * scale_factor))
+        
+        # Ubicación
+        if ubicacion:
+            ubicacion_label = QLabel(f"📍 Ubicación: {ubicacion}")
+            ubicacion_label.setStyleSheet(f"QLabel {{ color: #ffffff; font-size: {detail_font_size}px; }}")
+            details_layout.addWidget(ubicacion_label)
+        
+        # Edificio y piso
+        building_text = f"🏢 Edificio: {edificio}" if edificio else "🏢 Edificio: No especificado"
+        if piso:
+            building_text += f" | Piso: {piso}"
+        building_label = QLabel(building_text)
+        building_label.setStyleSheet(f"QLabel {{ color: #ffffff; font-size: {detail_font_size}px; }}")
+        details_layout.addWidget(building_label)
+        
+        # Descripción
+        if descripcion:
+            desc_label = QLabel(f"📝 {descripcion}")
+            desc_label.setStyleSheet(f"QLabel {{ color: #cccccc; font-size: {desc_font_size}px; }}")
+            desc_label.setWordWrap(True)
+            details_layout.addWidget(desc_label)
+        
+        card_layout.addWidget(details_frame)
+        
+        # Botón de acceso responsive
+        button_font_size = max(14, int(16 * scale_factor))
+        button_padding = max(10, int(12 * scale_factor))
+        
+        access_btn = QPushButton("🚪 ACCEDER AL AMBIENTE")
+        access_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #00bcd4, stop:1 #00acc1);
+                color: #ffffff;
+                font-size: {button_font_size}px;
+                font-weight: bold;
+                border: none;
+                border-radius: 10px;
+                padding: {button_padding}px;
+                margin: 5px;
+            }}
+            QPushButton:hover {{
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #00acc1, stop:1 #0097a7);
+            }}
+            QPushButton:pressed {{
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #0097a7, stop:1 #00838f);
+            }}
+        """)
+        access_btn.clicked.connect(lambda checked, eid=env_id, n=nombre: self._access_environment(eid, n))
+        
+        card_layout.addWidget(access_btn)
+        
+        return card
+    
+    def _create_modern_footer(self, parent, layout):
+        """Crea un footer moderno responsive"""
+        # Calcular escala responsive
+        try:
+            screen_width = parent.window().screen().availableGeometry().width()
+            scale_factor = max(0.7, min(1.5, screen_width / 1200.0))
+        except Exception:
+            scale_factor = 1.0
+        
+        footer_frame = QFrame()
+        footer_frame.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #1a1a2e, stop:1 #16213e);
+                border-radius: 15px;
+                margin: 5px;
+            }
+        """)
+        
+        # Altura responsive
+        footer_height = max(60, int(80 * scale_factor))
+        footer_frame.setMinimumHeight(footer_height)
+        
+        # Márgenes responsive
+        margin_size = max(20, int(30 * scale_factor))
+        padding_size = max(12, int(15 * scale_factor))
+        
+        footer_layout = QHBoxLayout(footer_frame)
+        footer_layout.setContentsMargins(margin_size, padding_size, margin_size, padding_size)
+        
+        # Información del sistema responsive
+        info_font_size = max(12, int(14 * scale_factor))
+        info_label = QLabel("Sistema CEFA - Gestión de Ambientes Administrativos")
+        info_label.setStyleSheet(f"""
+            QLabel {{
+                color: #888888;
+                font-size: {info_font_size}px;
+            }}
+        """)
+        
+        # Botón de cerrar sesión responsive
+        button_font_size = max(14, int(16 * scale_factor))
+        button_padding = max(10, int(12 * scale_factor))
+        
+        logout_btn = QPushButton("🚪 CERRAR SESIÓN")
+        logout_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #ff6b6b;
+                color: #ffffff;
+                font-size: {button_font_size}px;
+                font-weight: bold;
+                border: none;
+                border-radius: 10px;
+                padding: {button_padding}px {max(20, int(25 * scale_factor))}px;
+            }}
+            QPushButton:hover {{
+                background-color: #ff5252;
+            }}
+            QPushButton:pressed {{
+                background-color: #e53935;
+            }}
+        """)
+        logout_btn.clicked.connect(parent.close)
+        
+        footer_layout.addWidget(info_label)
+        footer_layout.addStretch()
+        footer_layout.addWidget(logout_btn)
+        
+        layout.addWidget(footer_frame)
+
 
     def _get_available_environments(self):
         """Obtiene los ambientes disponibles de la base de datos"""
@@ -270,54 +492,16 @@ class AdministrativeInterface:
             return []
 
     def _access_environment(self, environment_id, environment_name):
-        """Maneja el acceso a un ambiente específico"""
-        messagebox.showinfo(
+        QMessageBox.information(
+            self.parent,
             "🚪 ACCESO AL AMBIENTE",
-            f"Ambiente: {environment_name}\n"
-            f"ID: {environment_id}\n\n"
-            "El sistema está configurando el acceso administrativo para este ambiente.\n"
-            "Por favor, espere la confirmación del sistema."
+            f"Ambiente: {environment_name}\nID: {environment_id}\n\nEl sistema está configurando el acceso administrativo para este ambiente.\nPor favor, espere la confirmación del sistema."
         )
         
         # Aquí se integraría con la lógica del sistema original
         # para configurar el acceso administrativo al ambiente seleccionado
         print(f"✅ Acceso administrativo configurado para: {environment_name} (ID: {environment_id})")
 
-    def _create_administrative_footer(self, parent_container, window):
-        """Crea el footer futurista con botón de cerrar sesión"""
-        # Frame del footer
-        footer_frame = tk.Frame(parent_container, bg="#0a0a0a")
-        footer_frame.pack(fill="x", pady=(20, 0))
-        
-        # Línea decorativa superior
-        line_frame = tk.Frame(footer_frame, bg="#00d4ff", height=1)
-        line_frame.pack(fill="x", pady=(0, 15))
-        
-        # Botón de cerrar sesión futurista
-        logout_btn = tk.Button(
-            footer_frame,
-            text="🚪 CERRAR SESIÓN",
-            font=("Arial", 14, "bold"),
-            bg="#ff4444",
-            fg="#ffffff",
-            relief="raised",
-            bd=3,
-            padx=30,
-            pady=10,
-            command=window.destroy,
-            cursor="hand2"
-        )
-        logout_btn.pack()
-        
-        # Efecto de hover para el botón
-        def on_enter(e):
-            logout_btn.config(bg="#ff6666", relief="sunken")
-        
-        def on_leave(e):
-            logout_btn.config(bg="#ff4444", relief="raised")
-        
-        logout_btn.bind("<Enter>", on_enter)
-        logout_btn.bind("<Leave>", on_leave)
 
     def _show_personnel_management(self, parent_window):
         """Muestra la gestión de personal"""
@@ -604,16 +788,15 @@ class AdministrativeInterface:
             ]
             
             if export_to_csv(personnel_data, filename):
-                messagebox.showinfo("📊 EXPORTACIÓN EXITOSA", 
-                                  f"La información del personal se ha exportado correctamente a:\n\n{filename}")
+                QMessageBox.information(self.parent, "📊 EXPORTACIÓN EXITOSA", f"La información del personal se ha exportado correctamente a:\n\n{filename}")
                 
                 # Abrir el archivo exportado
                 open_file(filename)
             else:
-                messagebox.showerror("❌ ERROR", "Error al exportar la información del personal.")
+                QMessageBox.critical(self.parent, "❌ ERROR", "Error al exportar la información del personal.")
                 
         except Exception as e:
-            messagebox.showerror("🚨 ERROR", f"Error al exportar la información del personal:\n\n{e}")
+            QMessageBox.critical(self.parent, "🚨 ERROR", f"Error al exportar la información del personal:\n\n{e}")
 
     def _export_administrative_report(self):
         """Exporta el reporte administrativo"""
@@ -641,13 +824,12 @@ class AdministrativeInterface:
             ]
             
             if export_to_csv(admin_data, filename):
-                messagebox.showinfo("📊 EXPORTACIÓN EXITOSA", 
-                                  f"El reporte administrativo se ha exportado correctamente a:\n\n{filename}")
+                QMessageBox.information(self.parent, "📊 EXPORTACIÓN EXITOSA", f"El reporte administrativo se ha exportado correctamente a:\n\n{filename}")
                 
                 # Abrir el archivo exportado
                 open_file(filename)
             else:
-                messagebox.showerror("❌ ERROR", "Error al exportar el reporte administrativo.")
+                QMessageBox.critical(self.parent, "❌ ERROR", "Error al exportar el reporte administrativo.")
                 
         except Exception as e:
-            messagebox.showerror("🚨 ERROR", f"Error al exportar el reporte administrativo:\n\n{e}")
+            QMessageBox.critical(self.parent, "🚨 ERROR", f"Error al exportar el reporte administrativo:\n\n{e}")

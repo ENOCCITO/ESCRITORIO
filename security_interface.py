@@ -2,104 +2,81 @@
 # -*- coding: utf-8 -*-
 """
 security_interface.py
-- Interfaz de seguridad del sistema de dispensación biométrica
-- Control de acceso y vigilancia del campus
+- Interfaz de seguridad (PySide6)
 """
 
-import tkinter as tk
-from tkinter import messagebox
 import styles
 from config import *
 from utils import *
+from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QMessageBox, QPushButton, QDialog
+from key_manager import KeyManager
+from desktop_alerts import desktop_alert_system
+from db_utils import get_available_keys, get_environments, assign_key_to_person, get_personal_by_id
 
 class SecurityInterface:
-    def __init__(self, parent):
+    def __init__(self, parent, user: dict | None = None):
         self.parent = parent
+        self._km = KeyManager()
+        try:
+            if user and 'id' in user:
+                full = get_personal_by_id(int(user['id']))
+                if full:
+                    self._km.current_user = full
+        except Exception:
+            pass
+
+    def set_authenticated_user(self, user: dict | None):
+        """Actualiza el usuario autenticado para la sesión de seguridad."""
+        try:
+            if user and 'id' in user:
+                full = get_personal_by_id(int(user['id']))
+                if full:
+                    self._km.current_user = full
+        except Exception:
+            pass
         
     def show_security_interface(self):
-        """Muestra la interfaz de seguridad"""
-        # Crear ventana principal de seguridad
         security_win = styles.create_modal_window(self.parent, "🛡️ INTERFAZ DE SEGURIDAD - SISTEMA CEFA", ADMIN_WINDOW_SIZE)
         
-        # Contenedor principal
-        main_container = styles.create_main_frame(security_win)
-        main_container.pack(fill="both", expand=True, padx=40, pady=40)
-        
-        # Título de bienvenida
-        welcome_label = styles.create_title_label(main_container, "🛡️ INTERFAZ DE SEGURIDAD")
-        welcome_label.pack(pady=(0, 40))
-        
-        # Contenedor para los botones
-        buttons_container = styles.create_main_frame(main_container)
-        buttons_container.pack(expand=True)
-        
-        # Botón: Monitoreo en Tiempo Real
-        monitoring_btn = styles.create_futuristic_button(
-            buttons_container, 
-            "Monitoreo en Tiempo Real", 
-            lambda: self._show_real_time_monitoring(security_win)
-        )
-        
-        # Aplicar efectos de hover
-        styles.apply_button_hover_effects(monitoring_btn)
-        monitoring_btn.pack(pady=(0, 30))
-        
-        # Botón: Control de Acceso
-        access_control_btn = styles.create_futuristic_button(
-            buttons_container, 
-            "Control de Acceso", 
-            lambda: self._show_access_control(security_win)
-        )
-        
-        # Aplicar efectos de hover
-        styles.apply_button_hover_effects(access_control_btn)
-        access_control_btn.pack(pady=(0, 30))
-        
-        # Botón: Reportes de Seguridad
-        security_reports_btn = styles.create_futuristic_button(
-            buttons_container, 
-            "Reportes de Seguridad", 
-            lambda: self._show_security_reports(security_win)
-        )
-        
-        # Aplicar efectos de hover
-        styles.apply_button_hover_effects(security_reports_btn)
-        security_reports_btn.pack()
-        
-        # Botón de cerrar sesión
-        logout_btn = styles.create_danger_button(
-            main_container, 
-            "🚪 CERRAR SESIÓN", 
-            security_win.destroy
-        )
-        logout_btn.pack(side="bottom", pady=(20, 0))
-        
-        # Centrar la ventana
+        main_layout = QVBoxLayout(security_win)
+        main_layout.setContentsMargins(40, 40, 40, 40)
+        main_layout.setSpacing(20)
+
+        welcome_label = styles.create_title_label(security_win, "🛡️ INTERFAZ DE SEGURIDAD")
+        main_layout.addWidget(welcome_label)
+
+        # Único botón principal: Seleccionar ambiente
+        select_btn = styles.create_futuristic_button(security_win, "🏢 SELECCIONAR AMBIENTE", self._open_environment_selector)
+        main_layout.addWidget(select_btn)
+
+        # Sección: Mis llaves en mano (para devolver)
+        my_keys_card = styles.create_card(security_win)
+        mk_l = QVBoxLayout(my_keys_card)
+        mk_l.setContentsMargins(16, 12, 16, 12)
+        mk_l.addWidget(styles.create_subtitle_label(my_keys_card, "MIS LLAVES EN MANO"))
+        self._my_keys_container = styles.create_main_frame(my_keys_card)
+        self._my_keys_layout = QVBoxLayout(self._my_keys_container)
+        mk_l.addWidget(self._my_keys_container)
+        main_layout.addWidget(my_keys_card)
+        self._refresh_my_keys()
+
+        logout_btn = styles.create_danger_button(security_win, "🚪 CERRAR SESIÓN", security_win.close)
+        main_layout.addWidget(logout_btn)
+
         styles.center_window(security_win)
+        security_win.show()
 
     def _show_real_time_monitoring(self, parent_window):
         """Muestra el monitoreo en tiempo real del campus"""
         # Crear ventana de monitoreo
         monitoring_win = styles.create_modal_window(self.parent, "📹 MONITOREO EN TIEMPO REAL", ENVIRONMENT_WINDOW_SIZE)
-        
-        # Título
-        title_label = styles.create_title_label(monitoring_win, "📹 MONITOREO EN TIEMPO REAL")
-        title_label.pack(pady=(20, 10))
-        
-        subtitle_label = styles.create_subtitle_label(monitoring_win, "Estado actual del campus y cámaras de seguridad")
-        subtitle_label.pack(pady=(0, 30))
-        
-        # Contenedor principal
-        main_frame = styles.create_content_frame(monitoring_win)
-        main_frame.pack(fill="both", expand=True, padx=20, pady=10)
-        
-        # Frame para el estado del campus
-        campus_status_frame = styles.create_main_frame(main_frame)
-        campus_status_frame.pack(fill="x", padx=15, pady=15)
-        
-        # Estado del campus
-        campus_status_content = """
-🏫 ESTADO ACTUAL DEL CAMPUS
+        layout = QVBoxLayout(monitoring_win)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.addWidget(styles.create_title_label(monitoring_win, "📹 MONITOREO EN TIEMPO REAL"))
+        layout.addWidget(styles.create_subtitle_label(monitoring_win, "Estado actual del campus y cámaras de seguridad"))
+        main_block = styles.create_content_frame(monitoring_win)
+        main_block_layout = QVBoxLayout(main_block)
+        for line in """🏫 ESTADO ACTUAL DEL CAMPUS
 
 🟢 ZONAS SEGURAS:
    • Edificio Principal: Normal
@@ -125,326 +102,217 @@ class SecurityInterface:
 🚨 ALERTAS ACTIVAS:
    • Ninguna alerta activa
    • Sistema funcionando normalmente
-   • Todas las áreas monitoreadas
-        """
-        
-        # Crear etiquetas para el estado del campus
-        status_lines = campus_status_content.strip().split('\n')
-        for i, line in enumerate(status_lines):
+   • Todas las áreas monitoreadas""".split("\n"):
             if line.strip():
-                label = styles.create_info_label(campus_status_frame, line)
-                label.pack(anchor="w", pady=2)
-        
-        # Botones de control
-        control_frame = styles.create_main_frame(monitoring_win)
-        control_frame.pack(fill="x", padx=20, pady=20)
-        
-        # Botón para actualizar estado
-        refresh_btn = styles.create_accent_button(
-            control_frame, 
-            "🔄 ACTUALIZAR", 
-            lambda: self._refresh_campus_status()
-        )
-        refresh_btn.pack(side="left", padx=(0, 10))
-        
-        # Botón para cerrar
-        close_btn = styles.create_danger_button(
-            control_frame, 
-            "❌ CERRAR", 
-            monitoring_win.destroy
-        )
-        close_btn.pack(side="right")
-        
-        # Centrar la ventana
+                main_block_layout.addWidget(styles.create_info_label(main_block, line))
+        layout.addWidget(main_block)
+        controls = styles.create_main_frame(monitoring_win)
+        controls_layout = QHBoxLayout(controls)
+        refresh_btn = styles.create_accent_button(controls, "🔄 ACTUALIZAR", lambda: self._refresh_campus_status())
+        close_btn = styles.create_danger_button(controls, "❌ CERRAR", monitoring_win.close)
+        controls_layout.addWidget(refresh_btn)
+        controls_layout.addStretch(1)
+        controls_layout.addWidget(close_btn)
+        layout.addWidget(controls)
         styles.center_window(monitoring_win)
+        monitoring_win.show()
 
-    def _show_access_control(self, parent_window):
-        """Muestra el control de acceso con ambientes de la base de datos"""
-        # Crear ventana de control de acceso optimizada para 7 pulgadas
-        access_win = styles.create_modal_window(self.parent, "🚪 CONTROL DE ACCESO", "800x600")
-        
-        # Configurar para pantalla de 7 pulgadas
-        access_win.configure(bg="#0a0a0a")
-        
-        # Contenedor principal con padding optimizado
-        main_container = tk.Frame(access_win, bg="#0a0a0a")
-        main_container.pack(fill="both", expand=True, padx=20, pady=15)
-        
-        # Header con título y efectos
-        self._create_security_header(main_container)
-        
-        # Contenedor de información principal
-        info_container = tk.Frame(main_container, bg="#0a0a0a")
-        info_container.pack(fill="both", expand=True, pady=(20, 0))
-        
-        # Selección de ambientes para control de acceso
-        self._show_access_environment_selection(info_container)
-        
-        # Footer con botón de cerrar
-        self._create_security_footer(main_container, access_win)
-        
-        # Centrar la ventana
-        styles.center_window(access_win)
+    def _open_environment_selector(self):
+        dlg = styles.create_modal_window(self.parent, "🏢 AMBIENTES DISPONIBLES", "900x620")
+        lay = QVBoxLayout(dlg)
+        lay.setContentsMargins(16, 12, 16, 12)
+        lay.setSpacing(10)
+        lay.addWidget(styles.create_subtitle_label(dlg, "Seleccione un ambiente para gestionar sus llaves disponibles"))
 
-    def _create_security_header(self, parent_container):
-        """Crea el header futurista para la interfaz de seguridad"""
-        # Frame del header
-        header_frame = tk.Frame(parent_container, bg="#0a0a0a")
-        header_frame.pack(fill="x", pady=(0, 20))
-        
-        # Título principal con efectos
-        title_frame = tk.Frame(header_frame, bg="#0a0a0a")
-        title_frame.pack(expand=True)
-        
-        # Icono de seguridad
-        security_icon = tk.Label(
-            title_frame,
-            text="🛡️",
-            font=("Arial", 48, "bold"),
-            bg="#0a0a0a",
-            fg="#ff6b35"
-        )
-        security_icon.pack()
-        
-        # Título principal
-        welcome_label = tk.Label(
-            title_frame,
-            text="CONTROL DE ACCESO",
-            font=("Arial", 24, "bold"),
-            bg="#0a0a0a",
-            fg="#ff6b35"
-        )
-        welcome_label.pack(pady=(10, 0))
-        
-        # Subtítulo
-        subtitle_label = tk.Label(
-            title_frame,
-            text="Gestión de entradas y salidas del campus",
-            font=("Arial", 14),
-            bg="#0a0a0a",
-            fg="#ffffff"
-        )
-        subtitle_label.pack(pady=(5, 0))
-        
-        # Línea decorativa
-        line_frame = tk.Frame(header_frame, bg="#ff6b35", height=2)
-        line_frame.pack(fill="x", pady=(15, 0))
-        
-        # Efecto de brillo
-        glow_frame = tk.Frame(header_frame, bg="#ff6b35", height=1)
-        glow_frame.pack(fill="x")
-        glow_frame.configure(relief="raised", bd=1)
-
-    def _show_access_environment_selection(self, parent_container):
-        """Muestra la selección de ambientes para control de acceso"""
-        # Frame principal de selección
-        selection_main_frame = tk.Frame(parent_container, bg="#0a0a0a")
-        selection_main_frame.pack(fill="both", expand=True)
-        
-        # Título de selección
-        selection_title_frame = tk.Frame(selection_main_frame, bg="#0a0a0a")
-        selection_title_frame.pack(fill="x", pady=(0, 15))
-        
-        # Icono y título
-        selection_icon = tk.Label(
-            selection_title_frame,
-            text="🏢",
-            font=("Arial", 20),
-            bg="#0a0a0a",
-            fg="#00d4ff"
-        )
-        selection_icon.pack(side="left")
-        
-        selection_title = tk.Label(
-            selection_title_frame,
-            text="SELECCIONAR AMBIENTE PARA CONTROL DE ACCESO",
-            font=("Arial", 16, "bold"),
-            bg="#0a0a0a",
-            fg="#00d4ff"
-        )
-        selection_title.pack(side="left", padx=(10, 0))
-        
-        # Frame de ambientes con borde futurista
-        environments_frame = tk.Frame(
-            selection_main_frame,
-            bg="#1a1a2e",
-            relief="raised",
-            bd=2
-        )
-        environments_frame.pack(fill="both", expand=True)
-        
-        # Obtener ambientes de la base de datos
-        environments = self._get_available_environments()
-        
-        if not environments:
-            # Mostrar mensaje si no hay ambientes
-            no_env_label = tk.Label(
-                environments_frame,
-                text="❌ No hay ambientes disponibles en la base de datos",
-                font=("Arial", 14),
-                bg="#1a1a2e",
-                fg="#ff4444"
-            )
-            no_env_label.pack(expand=True)
-        else:
-            # Crear scrollable frame para los ambientes
-            canvas = tk.Canvas(environments_frame, bg="#1a1a2e", highlightthickness=0)
-            scrollbar = tk.Scrollbar(environments_frame, orient="vertical", command=canvas.yview)
-            scrollable_frame = tk.Frame(canvas, bg="#1a1a2e")
-            
-            scrollable_frame.bind(
-                "<Configure>",
-                lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-            )
-            
-            canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-            canvas.configure(yscrollcommand=scrollbar.set)
-            
-            # Crear botones para cada ambiente con opciones de entrada/salida
-            for i, env in enumerate(environments):
-                env_id, nombre, descripcion, tipo_ambiente, ubicacion, piso, edificio = env
-                
-                # Frame para cada ambiente
-                env_frame = tk.Frame(
-                    scrollable_frame,
-                    bg="#2a2a3e",
-                    relief="raised",
-                    bd=1
-                )
-                env_frame.pack(fill="x", padx=10, pady=5)
-                
-                # Información del ambiente
-                info_text = f"🏢 {nombre} | 📍 {ubicacion} | 🏗️ {tipo_ambiente}"
-                if piso:
-                    info_text += f" | 🏢 Piso {piso}"
-                
-                info_label = tk.Label(
-                    env_frame,
-                    text=info_text,
-                    font=("Arial", 12, "bold"),
-                    bg="#2a2a3e",
-                    fg="#ffffff",
-                    anchor="w"
-                )
-                info_label.pack(fill="x", padx=10, pady=(10, 5))
-                
-                # Frame para botones de entrada y salida
-                buttons_frame = tk.Frame(env_frame, bg="#2a2a3e")
-                buttons_frame.pack(fill="x", padx=10, pady=(0, 10))
-                
-                # Botón de entrada
-                entry_btn = tk.Button(
-                    buttons_frame,
-                    text="🚪 ENTRADA",
-                    font=("Arial", 10, "bold"),
-                    bg="#00ff88",
-                    fg="#000000",
-                    relief="raised",
-                    bd=2,
-                    padx=15,
-                    pady=8,
-                    command=lambda eid=env_id, n=nombre: self._control_environment_access(eid, n, "ENTRADA"),
-                    cursor="hand2"
-                )
-                entry_btn.pack(side="left", padx=(0, 10))
-                
-                # Botón de salida
-                exit_btn = tk.Button(
-                    buttons_frame,
-                    text="🚪 SALIDA",
-                    font=("Arial", 10, "bold"),
-                    bg="#ff6b35",
-                    fg="#ffffff",
-                    relief="raised",
-                    bd=2,
-                    padx=15,
-                    pady=8,
-                    command=lambda eid=env_id, n=nombre: self._control_environment_access(eid, n, "SALIDA"),
-                    cursor="hand2"
-                )
-                exit_btn.pack(side="left")
-                
-                # Efectos hover para los botones
-                def on_enter_entry(e, btn=entry_btn):
-                    btn.config(bg="#00ffaa", relief="sunken")
-                
-                def on_leave_entry(e, btn=entry_btn):
-                    btn.config(bg="#00ff88", relief="raised")
-                
-                def on_enter_exit(e, btn=exit_btn):
-                    btn.config(bg="#ff8c5a", relief="sunken")
-                
-                def on_leave_exit(e, btn=exit_btn):
-                    btn.config(bg="#ff6b35", relief="raised")
-                
-                entry_btn.bind("<Enter>", on_enter_entry)
-                entry_btn.bind("<Leave>", on_leave_entry)
-                exit_btn.bind("<Enter>", on_enter_exit)
-                exit_btn.bind("<Leave>", on_leave_exit)
-            
-            # Pack canvas y scrollbar
-            canvas.pack(side="left", fill="both", expand=True, padx=10, pady=10)
-            scrollbar.pack(side="right", fill="y")
-
-    def _get_available_environments(self):
-        """Obtiene los ambientes disponibles de la base de datos"""
+        # Construir lista de ambientes con llaves disponibles
+        # Mostrar todos los ambientes con llaves en estado DISPONIBLE o ASIGNADA (pero no DEVUELTA)
+        # Seguridad puede sacar llaves asignadas si no han sido reclamadas (estado ASIGNADA pero físicamente presente)
         try:
-            from utils import get_available_environments
-            return get_available_environments()
-        except Exception as e:
-            print(f"❌ Error obteniendo ambientes: {e}")
-            return []
+            from db_utils import db_connect
+            env_ids_with_keys = {}
+            envs_list = get_environments()
+            envs = {e['id']: e for e in envs_list} if isinstance(envs_list, list) else {}
+            with db_connect() as cnx:
+                cur = cnx.cursor(dictionary=True)
+                cur.execute("SELECT id, codigo_llave, descripcion, ambiente_id, estado, angulo_grados FROM llaves WHERE activo = 1 AND estado IN ('DISPONIBLE','ASIGNADA')")
+                for row in cur.fetchall():
+                    a_id = row.get('ambiente_id')
+                    if a_id:
+                        env_ids_with_keys.setdefault(a_id, []).append(row)
+        except Exception:
+            keys = get_available_keys()
+            envs = {e['id']: e for e in get_environments()} if isinstance(get_environments(), list) else {}
+            env_ids_with_keys = {}
+            for k in keys:
+                a_id = k.get('ambiente_id')
+                if a_id:
+                    env_ids_with_keys.setdefault(a_id, []).append(k)
+
+        container = styles.create_main_frame(dlg)
+        v = QVBoxLayout(container)
+        if not env_ids_with_keys:
+            v.addWidget(styles.create_info_label(container, "No hay llaves disponibles en este momento."))
+        else:
+            for env_id, klist in env_ids_with_keys.items():
+                info = envs.get(env_id, {})
+                name = info.get('nombre', f"Ambiente {env_id}")
+                row = styles.create_main_frame(container)
+                r = QHBoxLayout(row)
+                r.addWidget(styles.create_info_label(row, f"🏢 {name}  •  🔑 {len(klist)} llaves disponibles o asignadas sin reclamar"))
+                btn = styles.create_accent_button(row, "Ver llaves", lambda eid=env_id, n=name, kl=klist: self._open_keys_for_environment(eid, n, kl))
+                r.addStretch(1)
+                r.addWidget(btn)
+                v.addWidget(row)
+        lay.addWidget(container)
+        dlg.show()
+
+    def _create_security_header(self, parent, layout):
+        header = styles.create_main_frame(parent)
+        header_layout = QVBoxLayout(header)
+        icon = styles.create_title_label(header, "🛡️")
+        title = styles.create_title_label(header, "CONTROL DE ACCESO")
+        header_layout.addWidget(icon)
+        header_layout.addWidget(title)
+        layout.addWidget(header)
+
+    def _open_keys_for_environment(self, environment_id: int, environment_name: str, preset_keys: list | None = None):
+        dlg = styles.create_modal_window(self.parent, f"🔑 Llaves - {environment_name}", "900x620")
+        lay = QVBoxLayout(dlg)
+        lay.setContentsMargins(16, 12, 16, 12)
+        lay.setSpacing(10)
+        lay.addWidget(styles.create_subtitle_label(dlg, f"Llaves disponibles en {environment_name}"))
+
+        container = styles.create_main_frame(dlg)
+        v = QVBoxLayout(container)
+        v.setContentsMargins(10, 8, 10, 8)
+        v.setSpacing(8)
+        # Usar la lista precargada de llaves si viene del selector para evitar inconsistencias
+        if preset_keys is not None:
+            available = preset_keys
+        else:
+            try:
+                from db_utils import db_connect
+                with db_connect() as cnx:
+                    cur = cnx.cursor(dictionary=True)
+                    cur.execute("SELECT id, codigo_llave, descripcion, ambiente_id, estado, angulo_grados FROM llaves WHERE activo = 1 AND ambiente_id = %s ORDER BY codigo_llave", (environment_id,))
+                    available = cur.fetchall()
+            except Exception:
+                # Fallback: usar solo disponibles
+                available = [k for k in get_available_keys() if k.get('ambiente_id') == environment_id]
+        if not available:
+            v.addWidget(styles.create_info_label(container, "No hay llaves registradas para este ambiente."))
+        else:
+            for key in available:
+                row = styles.create_main_frame(container)
+                r = QHBoxLayout(row)
+                estado = str(key.get('estado','')).upper()
+                # Línea de detalle más clara y estética
+                label = styles.create_info_label(
+                    row,
+                    f"Código: {key['codigo_llave']}  •  {key.get('descripcion','')}  •  Estado: {estado}  •  Ángulo {key.get('angulo_grados','-')}"
+                )
+                r.addWidget(label)
+                # Acción según estado
+                if estado == 'DISPONIBLE':
+                    btn = styles.create_accent_button(row, "Tomar", lambda kid=key['id'], kcode=key['codigo_llave']: self._take_security_key(kid, kcode))
+                    r.addStretch(1)
+                    r.addWidget(btn)
+                elif estado == 'ASIGNADA':
+                    btn = styles.create_warning_button(row, "Reclamar (Seguridad)", lambda kid=key['id'], kcode=key['codigo_llave']: self._take_security_key(kid, kcode))
+                    r.addStretch(1)
+                    r.addWidget(btn)
+                else:
+                    r.addStretch(1)
+                r.addStretch(1)
+                v.addWidget(row)
+        lay.addWidget(container)
+        dlg.show()
+
+    def _refresh_my_keys(self):
+        # Limpiar
+        try:
+            while self._my_keys_layout.count():
+                item = self._my_keys_layout.takeAt(0)
+                w = item.widget()
+                if w:
+                    w.setParent(None)
+        except Exception:
+            pass
+        # Cargar asignaciones activas del usuario
+        try:
+            if self._km.current_user:
+                assignments = self._km.show_user_keys(self._km.current_user['id'])
+            else:
+                assignments = []
+        except Exception:
+            assignments = []
+        if not assignments:
+            self._my_keys_layout.addWidget(styles.create_info_label(self._my_keys_container, "No tienes llaves asignadas actualmente."))
+            return
+        for a in assignments:
+            row = styles.create_main_frame(self._my_keys_container)
+            r = QHBoxLayout(row)
+            r.addWidget(styles.create_info_label(row, f"{a['llave_codigo']} • {a['llave_descripcion']} • {a['ambiente_nombre']} • {a['fecha_asignacion'].strftime('%Y-%m-%d %H:%M')}"))
+            btn = styles.create_danger_button(row, "Devolver", lambda aid=a['id']: self._return_security_key(aid))
+            r.addStretch(1)
+            r.addWidget(btn)
+            self._my_keys_layout.addWidget(row)
+
+    def _take_security_key(self, key_id: int, key_code: str):
+        # Robustez: si el usuario no está seteado, intentar recuperarlo desde main -> role context
+        if not self._km.current_user:
+            try:
+                if hasattr(self.parent, 'best') and self.parent.best:
+                    pid, name, score = self.parent.best
+                    user = get_personal_by_id(int(pid))
+                    if user:
+                        self._km.current_user = user
+            except Exception:
+                pass
+        if not self._km.current_user:
+            QMessageBox.warning(self.parent, "⚠️", "No hay usuario de seguridad autenticado.")
+            return
+        # Seguridad puede tomar sin restricciones: usar asignación directa en BD
+        ok = assign_key_to_person(self._km.current_user['id'], key_id, "Entrega a seguridad")
+        if ok:
+            # 🤖 ENVIAR COMANDO AL ARDUINO PARA MOVER MOTOR
+            self._send_arduino_command(key_id, "TOMAR")
+            
+            try:
+                desktop_alert_system.show_key_assigned_alert(key_code, f"{self._km.current_user['nombres']} {self._km.current_user['apellidos']}")
+            except Exception:
+                QMessageBox.information(self.parent, "Llave asignada", f"Se asignó la llave {key_code}")
+            self._refresh_my_keys()
+        else:
+            QMessageBox.critical(self.parent, "❌ Error", "No se pudo asignar la llave")
+
+    def _return_security_key(self, assignment_id: int):
+        if not self._km.current_user:
+            QMessageBox.warning(self.parent, "⚠️", "No hay usuario de seguridad autenticado.")
+            return
+        ok = self._km.return_key_from_user(assignment_id, "Devolución por seguridad")
+        if ok:
+            # 🤖 ENVIAR COMANDO AL ARDUINO PARA MOVER MOTOR
+            self._send_arduino_command(assignment_id, "DEVOLVER")
+            
+            try:
+                desktop_alert_system.show_key_returned_alert(None, f"{self._km.current_user['nombres']} {self._km.current_user['apellidos']}")
+            except Exception:
+                QMessageBox.information(self.parent, "Llave devuelta", "Devolución registrada correctamente")
+            self._refresh_my_keys()
+        else:
+            QMessageBox.critical(self.parent, "❌ Error", "No se pudo registrar la devolución")
 
     def _control_environment_access(self, environment_id, environment_name, access_type):
-        """Maneja el control de acceso a un ambiente específico"""
-        messagebox.showinfo(
-            "🚪 CONTROL DE ACCESO",
-            f"Ambiente: {environment_name}\n"
-            f"Tipo: {access_type}\n"
-            f"ID: {environment_id}\n\n"
-            f"El sistema está configurando el control de {access_type.lower()} para este ambiente.\n"
-            "Por favor, espere la confirmación del sistema."
-        )
-        
-        # Aquí se integraría con la lógica del sistema original
-        # para configurar el control de acceso al ambiente seleccionado
-        print(f"✅ Control de {access_type} configurado para: {environment_name} (ID: {environment_id})")
+        pass
 
-    def _create_security_footer(self, parent_container, window):
-        """Crea el footer futurista con botón de cerrar"""
-        # Frame del footer
-        footer_frame = tk.Frame(parent_container, bg="#0a0a0a")
-        footer_frame.pack(fill="x", pady=(20, 0))
-        
-        # Línea decorativa superior
-        line_frame = tk.Frame(footer_frame, bg="#ff6b35", height=1)
-        line_frame.pack(fill="x", pady=(0, 15))
-        
-        # Botón de cerrar futurista
-        close_btn = tk.Button(
-            footer_frame,
-            text="❌ CERRAR",
-            font=("Arial", 14, "bold"),
-            bg="#ff4444",
-            fg="#ffffff",
-            relief="raised",
-            bd=3,
-            padx=30,
-            pady=10,
-            command=window.destroy,
-            cursor="hand2"
-        )
-        close_btn.pack()
-        
-        # Efecto de hover para el botón
-        def on_enter(e):
-            close_btn.config(bg="#ff6666", relief="sunken")
-        
-        def on_leave(e):
-            close_btn.config(bg="#ff4444", relief="raised")
-        
-        close_btn.bind("<Enter>", on_enter)
-        close_btn.bind("<Leave>", on_leave)
+    def _create_security_footer(self, parent, window, layout):
+        footer = styles.create_main_frame(parent)
+        footer_layout = QHBoxLayout(footer)
+        close_btn = styles.create_danger_button(footer, "❌ CERRAR", window.close)
+        footer_layout.addStretch(1)
+        footer_layout.addWidget(close_btn)
+        layout.addWidget(footer)
 
     def _show_security_reports(self, parent_window):
         """Muestra los reportes de seguridad"""
@@ -533,19 +401,14 @@ class SecurityInterface:
 
     def _refresh_campus_status(self):
         """Actualiza el estado del campus"""
-        messagebox.showinfo("🔄 ACTUALIZACIÓN", 
-                           "Estado del campus actualizado.\n\n"
-                           "Todas las áreas están siendo monitoreadas en tiempo real.")
+        QMessageBox.information(self.parent, "🔄 ACTUALIZACIÓN", "Estado del campus actualizado.\n\nTodas las áreas están siendo monitoreadas en tiempo real.")
         
         # Aquí se integraría con la lógica del sistema original
         # para actualizar el estado real del campus
 
     def _control_access_point(self, access_point):
         """Maneja el control de un punto de acceso específico"""
-        messagebox.showinfo("🚪 CONTROL DE ACCESO", 
-                           f"Gestionando: {access_point}\n\n"
-                           "El sistema está configurando el control de acceso para este punto.\n"
-                           "Por favor, espere la confirmación del sistema.")
+        QMessageBox.information(self.parent, "🚪 CONTROL DE ACCESO", f"Gestionando: {access_point}\n\nEl sistema está configurando el control de acceso para este punto.\nPor favor, espere la confirmación del sistema.")
         
         # Aquí se integraría con la lógica del sistema original
         # para configurar el control de acceso al punto seleccionado
@@ -576,13 +439,56 @@ class SecurityInterface:
             ]
             
             if export_to_csv(report_data, filename):
-                messagebox.showinfo("📊 EXPORTACIÓN EXITOSA", 
-                                  f"El reporte de seguridad se ha exportado correctamente a:\n\n{filename}")
+                QMessageBox.information(self.parent, "📊 EXPORTACIÓN EXITOSA", f"El reporte de seguridad se ha exportado correctamente a:\n\n{filename}")
                 
                 # Abrir el archivo exportado
                 open_file(filename)
             else:
-                messagebox.showerror("❌ ERROR", "Error al exportar el reporte de seguridad.")
+                QMessageBox.critical(self.parent, "❌ ERROR", "Error al exportar el reporte de seguridad.")
                 
         except Exception as e:
-            messagebox.showerror("🚨 ERROR", f"Error al exportar el reporte de seguridad:\n\n{e}")
+            QMessageBox.critical(self.parent, "🚨 ERROR", f"Error al exportar el reporte de seguridad:\n\n{e}")
+
+    def _send_arduino_command(self, key_id_or_assignment_id: int, action: str):
+        """
+        Envía comando al Arduino para mover el motor NEMA17 a la posición de la llave
+        
+        Args:
+            key_id_or_assignment_id: ID de la llave o asignación
+            action: "TOMAR" o "DEVOLVER"
+        """
+        try:
+            from utils import open_key_by_id, send_home, log_file
+            from config import ARDUINO_PORT_DEFAULT, ARDUINO_BAUD_DEFAULT
+            
+            print(f"🤖 [SEGURIDAD] Enviando comando Arduino: {action} - ID: {key_id_or_assignment_id}")
+            log_file(f"🤖 [SEGURIDAD] Comando Arduino: {action} - ID: {key_id_or_assignment_id}")
+            
+            if action == "TOMAR":
+                # Para tomar llave, mover a la posición de la llave
+                success = open_key_by_id(key_id_or_assignment_id, dwell_seconds=5)
+                if success:
+                    print(f"✅ [SEGURIDAD] Motor movido a posición de llave {key_id_or_assignment_id}")
+                    log_file(f"✅ [SEGURIDAD] Motor movido a posición de llave {key_id_or_assignment_id}")
+                else:
+                    print(f"❌ [SEGURIDAD] Error moviendo motor a llave {key_id_or_assignment_id}")
+                    log_file(f"❌ [SEGURIDAD] Error moviendo motor a llave {key_id_or_assignment_id}")
+                    
+            elif action == "DEVOLVER":
+                # Para devolver llave, mover a posición HOME (0 grados)
+                try:
+                    response = send_home(ARDUINO_PORT_DEFAULT, ARDUINO_BAUD_DEFAULT)
+                    if "HOME completado" in response or "Posición" in response:
+                        print("✅ [SEGURIDAD] Motor movido a posición HOME")
+                        log_file("✅ [SEGURIDAD] Motor movido a posición HOME")
+                    else:
+                        print(f"⚠️ [SEGURIDAD] Respuesta inesperada del Arduino: {response}")
+                        log_file(f"⚠️ [SEGURIDAD] Respuesta Arduino: {response}")
+                except Exception as e:
+                    print(f"❌ [SEGURIDAD] Error enviando HOME al Arduino: {e}")
+                    log_file(f"❌ [SEGURIDAD] Error enviando HOME al Arduino: {e}")
+            
+        except Exception as e:
+            print(f"❌ [SEGURIDAD] Error en comando Arduino {action}: {e}")
+            log_file(f"❌ [SEGURIDAD] Error en comando Arduino {action}: {e}")
+            # No mostrar error al usuario para no interrumpir el flujo principal

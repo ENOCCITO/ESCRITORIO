@@ -10,7 +10,7 @@ import json
 import time
 import os
 from datetime import datetime
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict, Any
 from config import *
 
 # ---- Sistema de logging profesional para dispenser.log ----
@@ -287,29 +287,310 @@ def get_environment_by_id(ambiente_id: int) -> Optional[Tuple[int, str, str, str
 
 
 # --------- Arduino I/O (import diferido) ----------
+def _open_serial_ready(arduino_port: str, baud: int, timeout: float):
+    serial, err = _import_serial()
+    if not serial:
+        raise RuntimeError(f"Falta pyserial: {err}")
+    ser = serial.Serial(arduino_port, baud, timeout=timeout)
+    # Evitar reinicios: mantener líneas en bajo y no togglear
+    try:
+        ser.dtr = False
+        ser.rts = False
+    except Exception:
+        pass
+    # Dar tiempo a que Arduino esté listo
+    time.sleep(0.6)
+    # Vaciar buffers
+    try:
+        ser.reset_input_buffer(); ser.reset_output_buffer()
+    except Exception:
+        pass
+    # Intentar obtener un STATUS rápido (no obligatorio)
+    try:
+        ser.write(b"STATUS\n"); ser.flush()
+        t0 = time.time()
+        while time.time() - t0 < 0.6:
+            _ = ser.readline()
+    except Exception:
+        pass
+    return ser
+
+
 def send_home(arduino_port: str, baud: int, timeout: float = 10.0) -> str:
     serial, err = _import_serial()
     if not serial:
         raise RuntimeError(f"Falta pyserial: {err}")
-    with serial.Serial(arduino_port, baud, timeout=timeout) as ser:
-        time.sleep(1.2)
-        ser.reset_input_buffer(); ser.reset_output_buffer()
+    
+    try:
+        ser = _open_serial_ready(arduino_port, baud, timeout)
+        time.sleep(0.3)
         ser.write(b"HOME\n"); ser.flush()
-        line = ser.readline().decode("utf-8", errors="ignore").strip()
-        return line or ""
+        # Leer todas las respuestas del Arduino
+        t0 = time.time(); response = ""
+        while time.time() - t0 < 5.0:
+            line = ser.readline().decode("utf-8", errors="ignore").strip()
+            if line:
+                response += line + "\n"
+        ser.close()
+        return response.strip() or ""
+    except Exception as e:
+        print(f"❌ Error enviando HOME al Arduino: {e}")
+        raise e
 
 
 def open_key_angle(angle_deg: int, dwell_seconds: int, arduino_port: str, baud: int, timeout: float = 10.0) -> str:
     serial, err = _import_serial()
     if not serial:
         raise RuntimeError(f"Falta pyserial: {err}")
-    cmd = f"OPEN {angle_deg} {dwell_seconds}\n".encode("utf-8")
-    with serial.Serial(arduino_port, baud, timeout=timeout) as ser:
-        time.sleep(1.2)
-        ser.reset_input_buffer(); ser.reset_output_buffer()
+    
+    try:
+        ser = _open_serial_ready(arduino_port, baud, timeout)
+        # Formatear grados con 2 decimales para evitar parsing extraño en Arduino
+        cmd = f"OPEN {angle_deg:.2f} {int(dwell_seconds)}\n".encode("utf-8")
+        time.sleep(0.2)
         ser.write(cmd); ser.flush()
-        line = ser.readline().decode("utf-8", errors="ignore").strip()
-        return line or ""
+        # Leer todas las respuestas del Arduino (hasta 8s)
+        t0 = time.time(); response = ""
+        while time.time() - t0 < (8.0 + max(0, int(dwell_seconds))):
+            line = ser.readline().decode("utf-8", errors="ignore").strip()
+            if line:
+                response += line + "\n"
+                # cortar cuando vemos fin típico
+                if "Movimiento completado" in line or "ERROR" in line:
+                    break
+        ser.close()
+        print(f"🔍 Respuesta completa del Arduino: {response}")
+        return response.strip() or ""
+    except Exception as e:
+        print(f"❌ Error enviando comando al Arduino: {e}")
+        raise e
+
+
+def degrees_to_steps(angle_deg: float) -> int:
+    """Convierte grados a pasos efectivos considerando microstepping y reductora."""
+    try:
+        from config import STEPS_PER_REV, MICROSTEP_FACTOR, GEAR_RATIO
+    except Exception:
+        # Valores por defecto seguros
+        STEPS_PER_REV = 200
+        MICROSTEP_FACTOR = 1
+        GEAR_RATIO = 1.0
+    effective_steps = float(STEPS_PER_REV) * float(MICROSTEP_FACTOR) * float(GEAR_RATIO)
+    return int(round((float(angle_deg) / 360.0) * effective_steps))
+
+
+def move_steps(step_count: int, arduino_port: str, baud: int, timeout: float = 10.0) -> str:
+    """Envía un movimiento directo por pasos (relativo). Acepta negativos."""
+    serial, err = _import_serial()
+    if not serial:
+        raise RuntimeError(f"Falta pyserial: {err}")
+    ser = _open_serial_ready(arduino_port, baud, timeout)
+    try:
+        cmd = f"STEPS {int(step_count)}\n".encode("utf-8")
+        time.sleep(0.2)
+        ser.write(cmd); ser.flush()
+        # Leer respuesta con ventana corta (2.5s + factor por pasos, máx 8s)
+        base = 2.5
+        factor = abs(step_count) / 800.0
+        t_limit = min(base + factor, 8.0)
+        t0 = time.time(); response = ""
+        while time.time() - t0 < t_limit:
+            line = ser.readline().decode("utf-8", errors="ignore").strip()
+            if line:
+                response += line + "\n"
+                if "Movimiento completado" in line or "ERROR" in line:
+                    break
+        return response.strip() or ""
+    finally:
+        try:
+            ser.close()
+        except Exception:
+            pass
+
+
+def open_key_by_id_steps(key_id: int, dwell_seconds: int = None, arduino_port: str = None, baud: int = None) -> bool:
+    """Mueve el motor a la llave por pasos calculados desde ángulo BD.
+    Flujo: mover pasos -> esperar -> mover pasos de regreso (simétrico)."""
+    try:
+        from config import ARDUINO_PORT_DEFAULT, ARDUINO_BAUD_DEFAULT, DEFAULT_DWELL
+        from db_utils import db_connect
+        if arduino_port is None:
+            arduino_port = ARDUINO_PORT_DEFAULT
+        if baud is None:
+            baud = ARDUINO_BAUD_DEFAULT
+        if dwell_seconds is None:
+            dwell_seconds = DEFAULT_DWELL
+        # Consultar ángulo
+        with db_connect() as cnx:
+            cur = cnx.cursor(dictionary=True)
+            cur.execute("""
+                SELECT codigo_llave, angulo_grados
+                FROM llaves WHERE id = %s AND activo = 1
+            """, (key_id,))
+            row = cur.fetchone()
+            cur.close()
+        if not row:
+            print(f"❌ Llave {key_id} no encontrada")
+            return False
+        angle = float(row.get('angulo_grados') or 0.0)
+        steps = degrees_to_steps(angle)
+        print(f"📐 Ángulo {angle:.2f}° → {steps} pasos")
+        # Ir a posición
+        resp1 = move_steps(steps, arduino_port, baud)
+        ok1 = "Movimiento completado" in (resp1 or "")
+        # Dwell
+        if ok1 and dwell_seconds and dwell_seconds > 0:
+            time.sleep(dwell_seconds)
+        # Regresar de forma simétrica
+        resp2 = move_steps(-steps, arduino_port, baud)
+        ok2 = "Movimiento completado" in (resp2 or "")
+        print(f"🔍 Ida: {resp1}\n🔍 Regreso: {resp2}")
+        return ok1 and ok2
+    except Exception as e:
+        print(f"❌ Error open_key_by_id_steps({key_id}): {e}")
+        return False
+
+
+def open_key_by_id(key_id: int, dwell_seconds: int = None, arduino_port: str = None, baud: int = None) -> bool:
+    """Abre una llave específica por ID obteniendo el ángulo desde la base de datos"""
+    try:
+        from config import ARDUINO_PORT_DEFAULT, ARDUINO_BAUD_DEFAULT, DEFAULT_DWELL
+        from db_utils import db_connect
+        
+        if arduino_port is None:
+            arduino_port = ARDUINO_PORT_DEFAULT
+        if baud is None:
+            baud = ARDUINO_BAUD_DEFAULT
+        if dwell_seconds is None:
+            dwell_seconds = DEFAULT_DWELL
+        
+        # Obtener información de la llave desde la base de datos (sin importar el estado)
+        with db_connect() as cnx:
+            cur = cnx.cursor(dictionary=True)
+            query = """
+                SELECT id, codigo_llave, descripcion, ambiente_id, estado, activo, 
+                       angulo_grados, modulo, posicion_circular, tipo_llave
+                FROM llaves 
+                WHERE id = %s AND activo = 1
+            """
+            cur.execute(query, (key_id,))
+            key_info = cur.fetchone()
+            cur.close()
+        
+        if not key_info:
+            print(f"❌ Llave {key_id} no encontrada en la base de datos")
+            return False
+        
+        degrees = key_info.get('angulo_grados', 0)
+        if degrees is None or degrees < 0 or degrees > 360:
+            print(f"❌ Ángulo inválido para llave {key_id}: {degrees}")
+            return False
+        
+        print(f"🔑 Abriendo llave {key_info['codigo_llave']} - Ángulo: {degrees}°")
+        
+        # Enviar comando al Arduino
+        response = open_key_angle(degrees, dwell_seconds, arduino_port, baud)
+        
+        if "Movimiento completado" in response:
+            print(f"✅ Llave {key_info['codigo_llave']} abierta exitosamente")
+            log_file(f"✅ Llave {key_id} abierta - Ángulo: {degrees}°")
+            # Retorno simétrico por pasos para no depender del estado interno del micro
+            step_delta = degrees_to_steps(degrees)
+            if dwell_seconds and dwell_seconds > 0:
+                time.sleep(dwell_seconds)
+            _ = move_steps(-step_delta, arduino_port, baud)
+            return True
+        else:
+            print(f"❌ Error abriendo llave {key_id}: {response}")
+            log_file(f"❌ Error abriendo llave {key_id}: {response}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error abriendo llave {key_id}: {e}")
+        log_file(f"❌ Error abriendo llave {key_id}: {e}")
+        return False
+
+
+def open_environment_key(environment_id: int, dwell_seconds: int = None, arduino_port: str = None, baud: int = None) -> bool:
+    """Abre la llave de un ambiente específico"""
+    try:
+        from config import ARDUINO_PORT_DEFAULT, ARDUINO_BAUD_DEFAULT, DEFAULT_DWELL
+        from db_utils import get_available_keys
+        
+        if arduino_port is None:
+            arduino_port = ARDUINO_PORT_DEFAULT
+        if baud is None:
+            baud = ARDUINO_BAUD_DEFAULT
+        if dwell_seconds is None:
+            dwell_seconds = DEFAULT_DWELL
+        
+        # Obtener llaves del ambiente
+        keys = get_available_keys()
+        environment_keys = [k for k in keys if k['ambiente_id'] == environment_id]
+        
+        if not environment_keys:
+            print(f"❌ No hay llaves disponibles para ambiente {environment_id}")
+            return False
+        
+        # Usar la primera llave disponible del ambiente
+        key = environment_keys[0]
+        key_id = key['id']
+        degrees = key.get('angulo_grados', 0)
+        
+        print(f"🏢 Abriendo llave del ambiente {environment_id} - Llave: {key['codigo_llave']}")
+        print(f"📐 Ángulo: {degrees}°")
+        
+        return open_key_by_id(key_id, dwell_seconds, arduino_port, baud)
+        
+    except Exception as e:
+        print(f"❌ Error abriendo llave del ambiente {environment_id}: {e}")
+        log_file(f"❌ Error abriendo llave del ambiente {environment_id}: {e}")
+        return False
+
+
+def get_arduino_status(arduino_port: str = None, baud: int = None) -> Dict[str, Any]:
+    """Obtiene el estado del Arduino"""
+    try:
+        from config import ARDUINO_PORT_DEFAULT, ARDUINO_BAUD_DEFAULT
+        
+        if arduino_port is None:
+            arduino_port = ARDUINO_PORT_DEFAULT
+        if baud is None:
+            baud = ARDUINO_BAUD_DEFAULT
+        
+        serial, err = _import_serial()
+        if not serial:
+            return {'connected': False, 'error': f'PySerial no disponible: {err}'}
+        
+        try:
+            with serial.Serial(arduino_port, baud, timeout=3.0) as ser:
+                time.sleep(1)
+                ser.reset_input_buffer()
+                ser.reset_output_buffer()
+                ser.write(b"STATUS\n")
+                ser.flush()
+                
+                response = ""
+                start_time = time.time()
+                while time.time() - start_time < 5.0:
+                    if ser.in_waiting > 0:
+                        line = ser.readline().decode("utf-8", errors="ignore").strip()
+                        if line:
+                            response += line + "\n"
+                    time.sleep(0.1)
+                
+                return {
+                    'connected': True,
+                    'port': arduino_port,
+                    'baud': baud,
+                    'response': response
+                }
+                
+        except Exception as e:
+            return {'connected': False, 'error': f'Error comunicándose con Arduino: {e}'}
+            
+    except Exception as e:
+        return {'connected': False, 'error': str(e)}
 
 
 # --------- Funciones de utilidad general ----------

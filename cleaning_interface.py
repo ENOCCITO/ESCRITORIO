@@ -2,209 +2,66 @@
 # -*- coding: utf-8 -*-
 """
 cleaning_interface.py
-- Interfaz de aseo del sistema de dispensación biométrica
-- Gestión de limpieza y mantenimiento del campus
+- Interfaz de aseo (PySide6)
 """
 
-import tkinter as tk
-from tkinter import messagebox
 import styles
 from config import *
 from utils import *
+from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QMessageBox
 
 class CleaningInterface:
     def __init__(self, parent):
         self.parent = parent
-        
+
     def show_cleaning_interface(self):
-        """Muestra la interfaz de aseo con selección de ambientes de la base de datos"""
-        # Crear ventana principal de aseo optimizada para 7 pulgadas
         cleaning_win = styles.create_modal_window(self.parent, "🧹 INTERFAZ DE ASEO - SISTEMA CEFA", "800x600")
-        
-        # Configurar para pantalla de 7 pulgadas
-        cleaning_win.configure(bg="#0a0a0a")
-        
-        # Contenedor principal con padding optimizado
-        main_container = tk.Frame(cleaning_win, bg="#0a0a0a")
-        main_container.pack(fill="both", expand=True, padx=20, pady=15)
-        
-        # Header con título y efectos
-        self._create_cleaning_header(main_container)
-        
-        # Contenedor de información principal
-        info_container = tk.Frame(main_container, bg="#0a0a0a")
-        info_container.pack(fill="both", expand=True, pady=(20, 0))
-        
-        # Selección de ambientes disponibles
-        self._show_environment_selection(info_container)
-        
-        # Footer con botón de cerrar sesión
-        self._create_cleaning_footer(main_container, cleaning_win)
-        
-        # Centrar la ventana
+        main_layout = QVBoxLayout(cleaning_win)
+        main_layout.setContentsMargins(20, 15, 20, 15)
+        main_layout.setSpacing(12)
+
+        self._create_cleaning_header(cleaning_win, main_layout)
+
+        content_holder = styles.create_main_frame(cleaning_win)
+        content_layout = QVBoxLayout(content_holder)
+        self._show_environment_selection(content_holder, content_layout)
+        main_layout.addWidget(content_holder)
+
+        self._create_cleaning_footer(cleaning_win, cleaning_win, main_layout)
         styles.center_window(cleaning_win)
+        cleaning_win.show()
 
-    def _create_cleaning_header(self, parent_container):
-        """Crea el header futurista para la interfaz de aseo"""
-        # Frame del header
-        header_frame = tk.Frame(parent_container, bg="#0a0a0a")
-        header_frame.pack(fill="x", pady=(0, 20))
-        
-        # Título principal con efectos
-        title_frame = tk.Frame(header_frame, bg="#0a0a0a")
-        title_frame.pack(expand=True)
-        
-        # Icono de aseo
-        cleaning_icon = tk.Label(
-            title_frame,
-            text="🧹",
-            font=("Arial", 48, "bold"),
-            bg="#0a0a0a",
-            fg="#00ff88"
-        )
-        cleaning_icon.pack()
-        
-        # Título principal
-        welcome_label = tk.Label(
-            title_frame,
-            text="¡BIENVENIDO PERSONAL DE ASEO!",
-            font=("Arial", 20, "bold"),
-            bg="#0a0a0a",
-            fg="#00ff88"
-        )
-        welcome_label.pack(pady=(10, 0))
-        
-        # Línea decorativa
-        line_frame = tk.Frame(header_frame, bg="#00ff88", height=2)
-        line_frame.pack(fill="x", pady=(15, 0))
-        
-        # Efecto de brillo
-        glow_frame = tk.Frame(header_frame, bg="#00ff88", height=1)
-        glow_frame.pack(fill="x")
-        glow_frame.configure(relief="raised", bd=1)
+    def _create_cleaning_header(self, parent, layout):
+        header = styles.create_main_frame(parent)
+        header_layout = QVBoxLayout(header)
+        icon = styles.create_title_label(header, "🧹")
+        title = styles.create_title_label(header, "¡BIENVENIDO PERSONAL DE ASEO!")
+        header_layout.addWidget(icon)
+        header_layout.addWidget(title)
+        layout.addWidget(header)
 
-    def _show_environment_selection(self, parent_container):
-        """Muestra la selección de ambientes disponibles de la base de datos"""
-        # Frame principal de selección
-        selection_main_frame = tk.Frame(parent_container, bg="#0a0a0a")
-        selection_main_frame.pack(fill="both", expand=True)
-        
-        # Título de selección
-        selection_title_frame = tk.Frame(selection_main_frame, bg="#0a0a0a")
-        selection_title_frame.pack(fill="x", pady=(0, 15))
-        
-        # Icono y título
-        selection_icon = tk.Label(
-            selection_title_frame,
-            text="🏢",
-            font=("Arial", 20),
-            bg="#0a0a0a",
-            fg="#00d4ff"
-        )
-        selection_icon.pack(side="left")
-        
-        selection_title = tk.Label(
-            selection_title_frame,
-            text="SELECCIONAR AMBIENTE PARA LIMPIEZA",
-            font=("Arial", 16, "bold"),
-            bg="#0a0a0a",
-            fg="#00d4ff"
-        )
-        selection_title.pack(side="left", padx=(10, 0))
-        
-        # Frame de ambientes con borde futurista
-        environments_frame = tk.Frame(
-            selection_main_frame,
-            bg="#1a1a2e",
-            relief="raised",
-            bd=2
-        )
-        environments_frame.pack(fill="both", expand=True)
-        
-        # Obtener ambientes de la base de datos
+    def _show_environment_selection(self, parent, layout):
+        title_row = styles.create_main_frame(parent)
+        title_layout = QHBoxLayout(title_row)
+        title_layout.addWidget(styles.create_subtitle_label(title_row, "🏢"))
+        title_layout.addWidget(styles.create_subtitle_label(title_row, "SELECCIONAR AMBIENTE PARA LIMPIEZA"))
+        title_layout.addStretch(1)
+        layout.addWidget(title_row)
+
+        environments_frame = styles.create_main_frame(parent)
+        environments_layout = QVBoxLayout(environments_frame)
         environments = self._get_available_environments()
-        
         if not environments:
-            # Mostrar mensaje si no hay ambientes
-            no_env_label = tk.Label(
-                environments_frame,
-                text="❌ No hay ambientes disponibles en la base de datos",
-                font=("Arial", 14),
-                bg="#1a1a2e",
-                fg="#ff4444"
-            )
-            no_env_label.pack(expand=True)
+            environments_layout.addWidget(styles.create_info_label(environments_frame, "❌ No hay ambientes disponibles en la base de datos"))
         else:
-            # Crear scrollable frame para los ambientes
-            canvas = tk.Canvas(environments_frame, bg="#1a1a2e", highlightthickness=0)
-            scrollbar = tk.Scrollbar(environments_frame, orient="vertical", command=canvas.yview)
-            scrollable_frame = tk.Frame(canvas, bg="#1a1a2e")
-            
-            scrollable_frame.bind(
-                "<Configure>",
-                lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-            )
-            
-            canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-            canvas.configure(yscrollcommand=scrollbar.set)
-            
-            # Crear botones para cada ambiente
-            for i, env in enumerate(environments):
+            for env in environments:
                 env_id, nombre, descripcion, tipo_ambiente, ubicacion, piso, edificio = env
-                
-                # Frame para cada ambiente
-                env_frame = tk.Frame(
-                    scrollable_frame,
-                    bg="#2a2a3e",
-                    relief="raised",
-                    bd=1
-                )
-                env_frame.pack(fill="x", padx=10, pady=5)
-                
-                # Botón del ambiente
-                env_btn = tk.Button(
-                    env_frame,
-                    text=f"🏢 {nombre}",
-                    font=("Arial", 12, "bold"),
-                    bg="#00d4ff",
-                    fg="#000000",
-                    relief="raised",
-                    bd=2,
-                    padx=20,
-                    pady=10,
-                    command=lambda eid=env_id, n=nombre: self._select_environment(eid, n),
-                    cursor="hand2"
-                )
-                env_btn.pack(side="left", padx=10, pady=10)
-                
-                # Información del ambiente
-                info_text = f"📍 {ubicacion} | 🏗️ {tipo_ambiente} | 🏢 {edificio}"
-                if piso:
-                    info_text += f" | 🏢 Piso {piso}"
-                
-                info_label = tk.Label(
-                    env_frame,
-                    text=info_text,
-                    font=("Arial", 10),
-                    bg="#2a2a3e",
-                    fg="#ffffff",
-                    anchor="w"
-                )
-                info_label.pack(side="left", padx=(10, 0), fill="x", expand=True)
-                
-                # Efecto hover para el botón
-                def on_enter(e, btn=env_btn):
-                    btn.config(bg="#00ff88", relief="sunken")
-                
-                def on_leave(e, btn=env_btn):
-                    btn.config(bg="#00d4ff", relief="raised")
-                
-                env_btn.bind("<Enter>", on_enter)
-                env_btn.bind("<Leave>", on_leave)
-            
-            # Pack canvas y scrollbar
-            canvas.pack(side="left", fill="both", expand=True, padx=10, pady=10)
-            scrollbar.pack(side="right", fill="y")
+                btn_text = f"🏢 {nombre}"
+                btn = styles.create_futuristic_button(environments_frame, btn_text, lambda eid=env_id, n=nombre: self._select_environment(eid, n))
+                environments_layout.addWidget(btn)
+                info_text = f"📍 {ubicacion} | 🏗️ {tipo_ambiente} | 🏢 {edificio}" + (f" | 🏢 Piso {piso}" if piso else "")
+                environments_layout.addWidget(styles.create_info_label(environments_frame, info_text))
+        layout.addWidget(environments_frame)
 
     def _get_available_environments(self):
         """Obtiene los ambientes disponibles de la base de datos"""
@@ -216,54 +73,23 @@ class CleaningInterface:
             return []
 
     def _select_environment(self, environment_id, environment_name):
-        """Maneja la selección de un ambiente específico"""
-        messagebox.showinfo(
+        QMessageBox.information(
+            self.parent,
             "🧹 AMBIENTE SELECCIONADO",
-            f"Ambiente seleccionado: {environment_name}\n\n"
-            f"ID: {environment_id}\n\n"
-            "El sistema está configurando la limpieza para este ambiente.\n"
-            "Por favor, espere la confirmación del sistema."
+            f"Ambiente seleccionado: {environment_name}\n\nID: {environment_id}\n\nEl sistema está configurando la limpieza para este ambiente.\nPor favor, espere la confirmación del sistema."
         )
         
         # Aquí se integraría con la lógica del sistema original
         # para configurar la limpieza del ambiente seleccionado
         print(f"✅ Ambiente seleccionado: {environment_name} (ID: {environment_id})")
 
-    def _create_cleaning_footer(self, parent_container, window):
-        """Crea el footer futurista con botón de cerrar sesión"""
-        # Frame del footer
-        footer_frame = tk.Frame(parent_container, bg="#0a0a0a")
-        footer_frame.pack(fill="x", pady=(20, 0))
-        
-        # Línea decorativa superior
-        line_frame = tk.Frame(footer_frame, bg="#00ff88", height=1)
-        line_frame.pack(fill="x", pady=(0, 15))
-        
-        # Botón de cerrar sesión futurista
-        logout_btn = tk.Button(
-            footer_frame,
-            text="🚪 CERRAR SESIÓN",
-            font=("Arial", 14, "bold"),
-            bg="#ff4444",
-            fg="#ffffff",
-            relief="raised",
-            bd=3,
-            padx=30,
-            pady=10,
-            command=window.destroy,
-            cursor="hand2"
-        )
-        logout_btn.pack()
-        
-        # Efecto de hover para el botón
-        def on_enter(e):
-            logout_btn.config(bg="#ff6666", relief="sunken")
-        
-        def on_leave(e):
-            logout_btn.config(bg="#ff4444", relief="raised")
-        
-        logout_btn.bind("<Enter>", on_enter)
-        logout_btn.bind("<Leave>", on_leave)
+    def _create_cleaning_footer(self, parent, window, layout):
+        footer = styles.create_main_frame(parent)
+        footer_layout = QHBoxLayout(footer)
+        logout_btn = styles.create_danger_button(footer, "🚪 CERRAR SESIÓN", window.close)
+        footer_layout.addStretch(1)
+        footer_layout.addWidget(logout_btn)
+        layout.addWidget(footer)
 
     def _show_cleaning_schedule(self, parent_window):
         """Muestra la programación de limpieza del campus"""
