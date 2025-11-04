@@ -61,11 +61,20 @@ class FingerprintRegistrationInterface:
             except Exception:
                 pass
 
-        # Crear ventana como QDialog modal
+        # Colores exactos del HTML
+        PRIMARY_COLOR = "#136dec"
+        BG_LIGHT_HTML = "#f6f7f8"
+        TEXT_GRAY_DARK = "#111418"
+        TEXT_GRAY_LIGHT = "#617289"
+        BORDER_COLOR = "#f0f2f4"
+        CARD_BG = "#ffffff"
+        
+        # Crear ventana como QDialog no modal
         self.window = QDialog(self.parent)
-        self.window.setWindowTitle("REGISTRO DE HUELLAS - SISTEMA CEFA")
-        self.window.resize(self.screen_width, self.screen_height)
-        self.window.setModal(True)
+        self.window.setWindowTitle("Registro de Huellas - Sistema de Dispensación Biométrica")
+        self.window.resize(1000, 700)
+        self.window.setModal(False)
+        self.window.setStyleSheet(f"background-color: {BG_LIGHT_HTML};")
 
         # Construir UI
         self._create_interface(self.window)
@@ -79,71 +88,224 @@ class FingerprintRegistrationInterface:
         self.window.show()
 
     def _create_interface(self, win: QDialog):
+        # Colores exactos del HTML
+        PRIMARY_COLOR = "#136dec"
+        BG_LIGHT_HTML = "#f6f7f8"
+        TEXT_GRAY_DARK = "#111418"
+        TEXT_GRAY_LIGHT = "#617289"
+        BORDER_COLOR = "#f0f2f4"
+        CARD_BG = "#ffffff"
+        
         root = QVBoxLayout(win)
-        root.setContentsMargins(10, 10, 10, 10)
-        root.setSpacing(8)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
 
-        # Header
-        header = QVBoxLayout()
-        title = QLabel("🔐 REGISTRO DE HUELLAS")
-        title.setAlignment(Qt.AlignHCenter)
-        title.setStyleSheet("color: #00ffff; font-weight: 700; font-size: 18px;")
-        subtitle = QLabel("Gestionar huellas digitales del personal")
-        subtitle.setAlignment(Qt.AlignHCenter)
-        subtitle.setStyleSheet("color: #cccccc;")
-        header.addWidget(title)
-        header.addWidget(subtitle)
-        header_frame = QFrame()
-        header_frame.setLayout(header)
-        root.addWidget(header_frame)
+        # Header (exacto del HTML)
+        header = QWidget(win)
+        header.setFixedHeight(60)
+        header.setStyleSheet(
+            f"background-color: transparent; "
+            f"border-bottom: 1px solid {BORDER_COLOR};"
+        )
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(16, 12, 16, 12)
+        header_layout.setSpacing(16)
+        
+        # Logo y título izquierda
+        left_header = QWidget(header)
+        left_header_layout = QHBoxLayout(left_header)
+        left_header_layout.setContentsMargins(0, 0, 0, 0)
+        left_header_layout.setSpacing(16)
+        
+        logo_container = QWidget(left_header)
+        logo_container.setFixedSize(24, 24)
+        logo_label = QLabel("🛡️", logo_container)
+        logo_label.setAlignment(Qt.AlignCenter)
+        logo_label.setStyleSheet(
+            f"color: {PRIMARY_COLOR}; "
+            f"font-size: 24px;"
+        )
+        left_header_layout.addWidget(logo_container)
+        
+        header_title = QLabel("Sistema de Dispensación Biométrica", left_header)
+        header_title.setStyleSheet(
+            f"color: {TEXT_GRAY_DARK}; "
+            f"font-size: 18px; "
+            f"font-weight: 700; "
+            f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
+        )
+        header_title.setWordWrap(False)
+        left_header_layout.addWidget(header_title)
+        
+        header_layout.addWidget(left_header)
+        header_layout.addStretch()
+        
+        # Botón Volver
+        back_btn = QPushButton("← Volver", header)
+        back_btn.setCursor(Qt.PointingHandCursor)
+        back_btn.setStyleSheet(
+            f"background-color: #f0f2f4; "
+            f"color: {TEXT_GRAY_DARK}; "
+            f"border: none; "
+            f"border-radius: 8px; "
+            f"padding: 8px 12px; "
+            f"font-size: 14px; "
+            f"font-weight: 700;"
+        )
+        back_btn.clicked.connect(win.close)
+        header_layout.addWidget(back_btn)
+        
+        root.addWidget(header)
+        
+        # Main content
+        main_content = QWidget(win)
+        main_content.setStyleSheet(f"background-color: {BG_LIGHT_HTML};")
+        main_layout = QVBoxLayout(main_content)
+        main_layout.setContentsMargins(40, 40, 40, 40)
+        main_layout.setSpacing(24)
+        
+        # Título principal centrado
+        title_container = QWidget(main_content)
+        title_layout = QVBoxLayout(title_container)
+        title_layout.setContentsMargins(0, 0, 0, 0)
+        title_layout.setSpacing(8)
+        title_layout.setAlignment(Qt.AlignCenter)
+        
+        main_title = QLabel("Registro de Huellas", title_container)
+        main_title.setAlignment(Qt.AlignCenter)
+        main_title.setStyleSheet(
+            f"color: {TEXT_GRAY_DARK}; "
+            f"font-size: 36px; "
+            f"font-weight: 900; "
+            f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; "
+            f"line-height: 1.2;"
+        )
+        main_title.setWordWrap(False)
+        title_layout.addWidget(main_title)
+        
+        subtitle_main = QLabel("Gestionar huellas digitales del personal", title_container)
+        subtitle_main.setAlignment(Qt.AlignCenter)
+        subtitle_main.setStyleSheet(
+            f"color: {TEXT_GRAY_LIGHT}; "
+            f"font-size: 16px; "
+            f"font-weight: 400; "
+            f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
+        )
+        subtitle_main.setWordWrap(False)
+        title_layout.addWidget(subtitle_main)
+        
+        main_layout.addWidget(title_container)
 
         # Controls (tipo + búsqueda + check)
-        controls = QHBoxLayout()
-        type_label = QLabel("Tipo de Personal:")
-        type_label.setStyleSheet("font-weight: 600;")
-        self.type_combo = QComboBox()
+        controls_container = QWidget(main_content)
+        controls_container.setStyleSheet(f"background-color: {CARD_BG}; border: 1px solid {BORDER_COLOR}; border-radius: 12px; padding: 20px;")
+        controls = QHBoxLayout(controls_container)
+        controls.setContentsMargins(0, 0, 0, 0)
+        controls.setSpacing(16)
+        
+        type_label = QLabel("Tipo de Personal:", controls_container)
+        type_label.setStyleSheet(
+            f"color: {TEXT_GRAY_DARK}; "
+            f"font-size: 14px; "
+            f"font-weight: 700;"
+        )
+        type_label.setWordWrap(False)
+        self.type_combo = QComboBox(controls_container)
+        self.type_combo.setStyleSheet(
+            f"background-color: {BG_LIGHT_HTML}; "
+            f"border: 1px solid {BORDER_COLOR}; "
+            f"border-radius: 8px; "
+            f"padding: 8px 12px; "
+            f"font-size: 14px; "
+            f"color: {TEXT_GRAY_DARK}; "
+            f"QComboBox::drop-down {{ border: none; }} "
+            f"QComboBox QAbstractItemView {{ background-color: {CARD_BG}; color: {TEXT_GRAY_DARK}; border: 1px solid {BORDER_COLOR}; border-radius: 8px; }}"
+        )
         self.type_combo.currentIndexChanged.connect(self._on_type_changed)
         controls.addWidget(type_label)
         controls.addWidget(self.type_combo)
 
-        search_label = QLabel("Buscar:")
-        search_label.setStyleSheet("font-weight: 600;")
-        self.search_entry = QLineEdit()
+        search_label = QLabel("Buscar:", controls_container)
+        search_label.setStyleSheet(
+            f"color: {TEXT_GRAY_DARK}; "
+            f"font-size: 14px; "
+            f"font-weight: 700;"
+        )
+        search_label.setWordWrap(False)
+        self.search_entry = QLineEdit(controls_container)
         self.search_entry.setPlaceholderText("Nombre o documento…")
+        self.search_entry.setStyleSheet(
+            f"background-color: {BG_LIGHT_HTML}; "
+            f"border: 1px solid {BORDER_COLOR}; "
+            f"border-radius: 8px; "
+            f"padding: 8px 12px; "
+            f"font-size: 14px; "
+            f"color: {TEXT_GRAY_DARK}; "
+            f"selection-background-color: {PRIMARY_COLOR}; "
+            f"selection-color: white;"
+        )
         self.search_entry.textChanged.connect(self._on_search_changed)
         controls.addWidget(search_label)
         controls.addWidget(self.search_entry, 1)
 
-        check_btn = QPushButton("🔌")
+        check_btn = QPushButton("🔌 Verificar Conexión", controls_container)
+        check_btn.setCursor(Qt.PointingHandCursor)
+        check_btn.setStyleSheet(
+            f"background-color: {PRIMARY_COLOR}; "
+            f"color: white; "
+            f"border: none; "
+            f"border-radius: 8px; "
+            f"padding: 8px 16px; "
+            f"font-size: 14px; "
+            f"font-weight: 700;"
+        )
         check_btn.clicked.connect(self._check_scanner_connection)
         controls.addWidget(check_btn)
-
-        controls_frame = QFrame()
-        controls_frame.setLayout(controls)
-        root.addWidget(controls_frame)
+        
+        main_layout.addWidget(controls_container)
 
         # Content area (scroll)
-        scroll = QScrollArea()
+        scroll = QScrollArea(main_content)
         scroll.setWidgetResizable(True)
+        scroll.setStyleSheet(f"background-color: transparent; border: none;")
+        scroll.setFrameShape(QFrame.NoFrame)
         self.scroll_area_widget = QWidget()
+        self.scroll_area_widget.setStyleSheet(f"background-color: transparent;")
         self.scroll_area_layout = QVBoxLayout(self.scroll_area_widget)
-        self.scroll_area_layout.setContentsMargins(5, 5, 5, 5)
-        self.scroll_area_layout.setSpacing(4)
+        self.scroll_area_layout.setContentsMargins(0, 0, 0, 0)
+        self.scroll_area_layout.setSpacing(12)
         scroll.setWidget(self.scroll_area_widget)
-        root.addWidget(scroll, 1)
+        main_layout.addWidget(scroll, 1)
 
         # Footer (status + count)
-        footer = QHBoxLayout()
-        self.status_label = QLabel("Listo para registrar huellas")
-        self.status_label.setStyleSheet("color: #888888;")
-        self.count_label = QLabel("0 registros")
-        self.count_label.setStyleSheet("color: #00ffff;")
-        footer.addWidget(self.status_label)
-        footer.addStretch(1)
-        footer.addWidget(self.count_label)
-        footer_frame = QFrame()
-        footer_frame.setLayout(footer)
-        root.addWidget(footer_frame)
+        footer = QWidget(main_content)
+        footer.setStyleSheet(f"background-color: {CARD_BG}; border: 1px solid {BORDER_COLOR}; border-radius: 12px; padding: 16px;")
+        footer_layout = QHBoxLayout(footer)
+        footer_layout.setContentsMargins(0, 0, 0, 0)
+        footer_layout.setSpacing(16)
+        
+        self.status_label = QLabel("Listo para registrar huellas", footer)
+        self.status_label.setStyleSheet(
+            f"color: {TEXT_GRAY_LIGHT}; "
+            f"font-size: 14px; "
+            f"font-weight: 400;"
+        )
+        self.status_label.setWordWrap(False)
+        
+        self.count_label = QLabel("0 registros", footer)
+        self.count_label.setStyleSheet(
+            f"color: {PRIMARY_COLOR}; "
+            f"font-size: 14px; "
+            f"font-weight: 700;"
+        )
+        self.count_label.setWordWrap(False)
+        
+        footer_layout.addWidget(self.status_label)
+        footer_layout.addStretch()
+        footer_layout.addWidget(self.count_label)
+        
+        main_layout.addWidget(footer)
+        root.addWidget(main_content, 1)
 
     def _initialize_biometric_scanner(self):
         try:
@@ -245,6 +407,14 @@ class FingerprintRegistrationInterface:
         self._update_count()
 
     def _update_personal_list(self):
+        # Colores exactos del HTML
+        PRIMARY_COLOR = "#136dec"
+        BG_LIGHT_HTML = "#f6f7f8"
+        TEXT_GRAY_DARK = "#111418"
+        TEXT_GRAY_LIGHT = "#617289"
+        BORDER_COLOR = "#f0f2f4"
+        CARD_BG = "#ffffff"
+        
         # Limpiar
         while self.scroll_area_layout.count():
             child = self.scroll_area_layout.takeAt(0)
@@ -253,7 +423,14 @@ class FingerprintRegistrationInterface:
                 w.deleteLater()
         if not self.filtered_data:
             no_data = QLabel("No se encontraron registros")
-            no_data.setStyleSheet("color: #888888;")
+            no_data.setAlignment(Qt.AlignCenter)
+            no_data.setStyleSheet(
+                f"color: {TEXT_GRAY_LIGHT}; "
+                f"font-size: 16px; "
+                f"font-weight: 400; "
+                f"padding: 40px;"
+            )
+            no_data.setWordWrap(False)
             self.scroll_area_layout.addWidget(no_data)
             return
         # Crear tarjetas
@@ -263,44 +440,120 @@ class FingerprintRegistrationInterface:
         self.scroll_area_layout.addStretch(1)
 
     def _create_person_card(self, person: Dict[str, Any]):
-        card = QFrame(self.scroll_area_widget)
-        card.setFrameShape(QFrame.NoFrame)
+        # Colores exactos del HTML
+        PRIMARY_COLOR = "#136dec"
+        BG_LIGHT_HTML = "#f6f7f8"
+        TEXT_GRAY_DARK = "#111418"
+        TEXT_GRAY_LIGHT = "#617289"
+        BORDER_COLOR = "#f0f2f4"
+        CARD_BG = "#ffffff"
+        
+        card = QWidget(self.scroll_area_widget)
+        card.setMinimumHeight(100)
+        card.setStyleSheet(
+            f"background-color: {CARD_BG}; "
+            f"border: 1px solid {BORDER_COLOR}; "
+            f"border-radius: 12px; "
+            f"padding: 20px;"
+        )
+        card.setCursor(Qt.PointingHandCursor)
         layout = QHBoxLayout(card)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(10)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(16)
 
-        # Inicial/avatar
+        # Avatar/Inicial circular
         initial = person["nombres"][0].upper() if person["nombres"] else "?"
-        avatar = QLabel(initial)
-        avatar.setStyleSheet("background:#00ffff;color:#000;font-weight:700;font-size:16px;padding:8px 12px;border-radius:4px;")
+        avatar = QLabel(initial, card)
+        avatar.setFixedSize(56, 56)
+        avatar.setAlignment(Qt.AlignCenter)
+        avatar.setStyleSheet(
+            f"background-color: rgba(19, 109, 236, 0.1); "
+            f"color: {PRIMARY_COLOR}; "
+            f"font-weight: 700; "
+            f"font-size: 24px; "
+            f"border-radius: 28px;"
+        )
         layout.addWidget(avatar)
 
-        # Info
+        # Información del personal
         info_col = QVBoxLayout()
-        name_lbl = QLabel(f"{person['nombres']} {person['apellidos']}")
-        name_lbl.setStyleSheet("color:#00ffff;font-weight:700;")
+        info_col.setSpacing(4)
+        info_col.setAlignment(Qt.AlignLeft)
+        
+        # Nombre completo
+        name_lbl = QLabel(f"{person['nombres']} {person['apellidos']}", card)
+        name_lbl.setStyleSheet(
+            f"color: {TEXT_GRAY_DARK}; "
+            f"font-size: 18px; "
+            f"font-weight: 700;"
+        )
+        name_lbl.setWordWrap(False)
         info_col.addWidget(name_lbl)
+        
+        # ID y tipo en una fila
         id_type_row = QHBoxLayout()
-        id_lbl = QLabel(f"ID: {person['id']}")
-        type_lbl = QLabel(f"• {person['tipo_personal_nombre']}")
-        id_lbl.setStyleSheet("color:#ccc;")
-        type_lbl.setStyleSheet("color:#888;")
+        id_type_row.setSpacing(8)
+        id_type_row.setContentsMargins(0, 0, 0, 0)
+        
+        id_lbl = QLabel(f"ID: {person['id']}", card)
+        id_lbl.setStyleSheet(
+            f"color: {TEXT_GRAY_LIGHT}; "
+            f"font-size: 14px; "
+            f"font-weight: 400;"
+        )
+        id_lbl.setWordWrap(False)
         id_type_row.addWidget(id_lbl)
+        
+        type_lbl = QLabel(f"• {person['tipo_personal_nombre']}", card)
+        type_lbl.setStyleSheet(
+            f"color: {TEXT_GRAY_LIGHT}; "
+            f"font-size: 14px; "
+            f"font-weight: 400;"
+        )
+        type_lbl.setWordWrap(False)
         id_type_row.addWidget(type_lbl)
         id_type_row.addStretch(1)
         info_col.addLayout(id_type_row)
 
         # Estado de huella
         fingerprint_status = "✅ Registrada" if person["huella_digital"] else "❌ Sin registrar"
-        status_color = "#4caf50" if person["huella_digital"] else "#ff6b6b"
-        status_lbl = QLabel(fingerprint_status)
-        status_lbl.setStyleSheet(f"color:{status_color};font-weight:700;")
+        status_color = "#10b981" if person["huella_digital"] else "#ef4444"
+        status_lbl = QLabel(fingerprint_status, card)
+        status_lbl.setStyleSheet(
+            f"color: {status_color}; "
+            f"font-size: 14px; "
+            f"font-weight: 700;"
+        )
+        status_lbl.setWordWrap(False)
         info_col.addWidget(status_lbl)
+        
         layout.addLayout(info_col, 1)
 
-        # Acción
-        btn = QPushButton("🔄 Actualizar" if person.get("huella_digital") else "👆 Registrar")
+        # Botón de acción
+        btn = QPushButton("🔄 Actualizar" if person.get("huella_digital") else "👆 Registrar", card)
+        btn.setCursor(Qt.PointingHandCursor)
+        btn.setStyleSheet(
+            f"background-color: {PRIMARY_COLOR}; "
+            f"color: white; "
+            f"border: none; "
+            f"border-radius: 8px; "
+            f"padding: 10px 20px; "
+            f"font-size: 14px; "
+            f"font-weight: 700;"
+        )
         btn.clicked.connect(lambda _, p=person: self._register_fingerprint(p))
+        
+        # Calcular ancho necesario
+        btn_font = btn.font()
+        btn_font.setPointSize(14)
+        btn_font.setBold(True)
+        btn.setFont(btn_font)
+        btn_fm = QFontMetrics(btn_font)
+        btn_text = "🔄 Actualizar" if person.get("huella_digital") else "👆 Registrar"
+        btn_text_width = btn_fm.horizontalAdvance(btn_text)
+        btn.setMinimumWidth(max(150, btn_text_width + 20))
+        btn.setMaximumWidth(16777215)
+        
         layout.addWidget(btn)
 
         self.scroll_area_layout.addWidget(card)

@@ -1,0 +1,6 @@
+PySide6>=6.5.0
+mysql-connector-python>=8.0.0
+pyserial>=3.5
+pyfingerprint>=0.4
+psutil>=5.9.0
+

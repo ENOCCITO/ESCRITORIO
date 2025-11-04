@@ -15,7 +15,7 @@ from typing import List, Tuple, Optional
 
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QMessageBox
+    QMessageBox, QGridLayout
 )
 from PySide6.QtCore import Qt, QTimer, QObject, Signal
 from PySide6.QtGui import QPainter, QPen, QColor, QPixmap
@@ -177,112 +177,225 @@ class App(QWidget):
         self._dispatcher = UiDispatcher(self)
 
     def _build_ui(self):
-        styles.setup_futuristic_styles(QApplication.instance())
+        # No usar setup_futuristic_styles porque estamos usando tema claro del HTML
+        # styles.setup_futuristic_styles(QApplication.instance())
 
+        # Colores exactos del HTML
+        PRIMARY_COLOR = "#136dec"
+        BG_LIGHT_HTML = "#f6f7f8"
+        TEXT_GRAY_DARK = "#111827"  # gray-900
+        TEXT_GRAY_LIGHT = "#6b7280"  # gray-500
+        BORDER_COLOR = "#e5e7eb"  # gray-200
+        
+        # Fondo claro del HTML
+        self.setStyleSheet(f"background-color: {BG_LIGHT_HTML};")
+        
         root_layout = QVBoxLayout(self)
-        root_layout.setContentsMargins(20, 20, 20, 10)
-        root_layout.setSpacing(12)
+        root_layout.setContentsMargins(0, 0, 0, 0)
+        root_layout.setSpacing(0)
 
-        # Header con logos (opcional)
-        header = styles.create_main_frame(self)
-        header_row = QHBoxLayout(header)
-        header_row.setContentsMargins(0, 0, 0, 0)
-        header_row.setSpacing(8)
+        # Header con logo y título (exacto del HTML)
+        header = QWidget(self)
+        header.setFixedHeight(60)
+        header.setStyleSheet(
+            f"background-color: transparent;"
+        )
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(40, 12, 40, 12)
+        header_layout.setSpacing(16)
+        
+        # Logo/ícono del sistema (escudo.png)
+        logo_label = QLabel(header)
+        logo_label.setFixedSize(32, 32)
+        escudo_pixmap = QPixmap("images/escudo.png")
+        if not escudo_pixmap.isNull():
+            escudo_pixmap = escudo_pixmap.scaled(32, 32, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            logo_label.setPixmap(escudo_pixmap)
+        else:
+            # Fallback si la imagen no se carga
+            logo_label.setText("🛡️")
+            logo_label.setAlignment(Qt.AlignCenter)
+            logo_label.setStyleSheet(
+                f"color: {PRIMARY_COLOR}; "
+                f"font-size: 24px;"
+            )
+        logo_label.setAlignment(Qt.AlignCenter)
+        header_layout.addWidget(logo_label)
 
-        def _load_logo(candidates, max_h):
-            lbl = QLabel(header)
-            lbl.setAlignment(Qt.AlignCenter)
-            for p in candidates:
-                try:
-                    pm = QPixmap(p)
-                    if not pm.isNull():
-                        pm = pm.scaledToHeight(max_h, Qt.SmoothTransformation)
-                        lbl.setPixmap(pm)
-                        break
-                except Exception:
-                    continue
-            return lbl
-
-        # Escala para logotipos según ancho de pantalla
-        try:
-            sw = self.screen().availableGeometry().width()
-            scale = max(0.6, min(1.6, sw / 1920.0))
-        except Exception:
-            scale = 1.0
-        logo_h = int(56 * scale)
-
-        # Rutas candidatas (no se crean archivos; si no existen, se omite el logo)
-        sena_logo = _load_logo([
-            "logo_sena.png", "sena.png", "assets/sena.png", "logos/sena.png"
-        ], logo_h)
-        idear_logo = _load_logo([
-            "logo_idear.png", "idear.png", "assets/idear.png", "logos/idear.png"
-        ], logo_h)
-
-        # Bloque central de títulos
-        titles = styles.create_main_frame(header)
-        titles_col = QVBoxLayout(titles)
-        titles_col.setContentsMargins(0, 0, 0, 0)
-        titles_col.setSpacing(2)
-        title_label = styles.create_title_label(titles, "🔐 SISTEMA DE DISPENSACIÓN BIOMÉTRICA")
-        subtitle_label = styles.create_subtitle_label(titles, "Control de Acceso por Huella Digital - CEFA")
-        title_label.setAlignment(Qt.AlignHCenter)
-        subtitle_label.setAlignment(Qt.AlignHCenter)
-        titles_col.addWidget(title_label)
-        titles_col.addWidget(subtitle_label)
-
-        # Composición: [logo izquierda] [títulos] [logo derecha]
-        header_row.addWidget(sena_logo, 0)
-        header_row.addWidget(titles, 1)
-        header_row.addWidget(idear_logo, 0)
+        # Título del header (exacto del HTML)
+        header_title = QLabel("Sistema de Dispensación de Llaves", header)
+        header_title.setStyleSheet(
+            f"color: {TEXT_GRAY_DARK}; "
+            f"font-size: 18px; "
+            f"font-weight: 700; "
+            f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
+        )
+        header_layout.addWidget(header_title)
+        header_layout.addStretch()
+        
         root_layout.addWidget(header)
 
-        # Botonera principal
-        row1 = styles.create_main_frame(self)
-        row1_layout = QHBoxLayout(row1)
-        row1_layout.setSpacing(10)
-        btn_admin = styles.create_futuristic_button(row1, "🛡️  ADMINISTRADOR", lambda: self._handle_biometric_access("admin"))
-        btn_instructor = styles.create_futuristic_button(row1, "👨‍🏫  INSTRUCTOR", lambda: self._handle_biometric_access("instructor"))
-        row1_layout.addWidget(btn_admin)
-        row1_layout.addWidget(btn_instructor)
+        # Sección principal con título y subtítulo centrado (exacto del HTML)
+        main_section = QWidget(self)
+        main_section.setStyleSheet(f"background-color: {BG_LIGHT_HTML};")
+        main_layout = QVBoxLayout(main_section)
+        main_layout.setContentsMargins(40, 40, 40, 40)
+        main_layout.setSpacing(32)
+        
+        # Título principal centrado (exacto del HTML)
+        title_container = QWidget(main_section)
+        title_layout = QVBoxLayout(title_container)
+        title_layout.setContentsMargins(0, 0, 0, 0)
+        title_layout.setSpacing(8)
+        title_layout.setAlignment(Qt.AlignCenter)
+        
+        main_title = QLabel("Sistema de Dispensación Biométrica", title_container)
+        main_title.setAlignment(Qt.AlignCenter)
+        main_title.setStyleSheet(
+            f"color: {TEXT_GRAY_DARK}; "
+            f"font-size: 36px; "
+            f"font-weight: 700; "
+            f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; "
+            f"line-height: 1.2;"
+        )
+        main_title.setWordWrap(False)  # Sin encapsulado, texto fluye naturalmente
+        title_layout.addWidget(main_title)
+        
+        subtitle_main = QLabel("Seleccione su rol para continuar", title_container)
+        subtitle_main.setAlignment(Qt.AlignCenter)
+        subtitle_main.setStyleSheet(
+            f"color: {TEXT_GRAY_LIGHT}; "
+            f"font-size: 16px; "
+            f"font-weight: 400; "
+            f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
+        )
+        subtitle_main.setWordWrap(False)  # Sin encapsulado, texto fluye naturalmente
+        title_layout.addWidget(subtitle_main)
+        
+        main_layout.addWidget(title_container)
+        
+        # Grilla de tarjetas de roles (exacto del HTML: grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6)
+        cards_container = QWidget(main_section)
+        cards_container.setStyleSheet(f"background-color: transparent;")
+        cards_layout = QGridLayout(cards_container)
+        cards_layout.setSpacing(24)
+        cards_layout.setContentsMargins(0, 0, 0, 0)
+        # Permitir que las columnas se expandan para que el texto no esté encapsulado
+        cards_layout.setColumnStretch(0, 1)
+        cards_layout.setColumnStretch(1, 1)
+        cards_layout.setColumnStretch(2, 1)
+        
+        # Definir los roles con sus íconos y descripciones (exacto del HTML)
+        roles = [
+            {
+                "icon": "images/administrador.jpg",  # Imagen del administrador
+                "title": "Administrador",
+                "description": "Gestión del sistema",
+                "action": lambda: self._handle_biometric_access("admin")
+            },
+            {
+                "icon": "images/instructor .jpg",  # Imagen del instructor (tiene espacio en el nombre)
+                "title": "Instructor",
+                "description": "Acceso a aulas",
+                "action": lambda: self._handle_biometric_access("instructor")
+            },
+            {
+                "icon": "images/seguridad.jpg",  # Imagen de seguridad
+                "title": "Seguridad",
+                "description": "Control de áreas seguras",
+                "action": lambda: self._handle_biometric_access("security")
+            },
+            {
+                "icon": "images/aseo.jpg",  # Imagen de aseo
+                "title": "Aseo",
+                "description": "Acceso a almacenes",
+                "action": lambda: self._handle_biometric_access("cleaning")
+            },
+            {
+                "icon": "images/administrativo.jpg",  # Imagen administrativo
+                "title": "Administrativo",
+                "description": "Oficinas y archivos",
+                "action": lambda: self._handle_biometric_access("administrative")
+            },
+            {
+                "icon": "images/calendario.jpg",  # Imagen de calendario/programación
+                "title": "Ver Programación",
+                "description": "Revisar horarios",
+                "action": self._show_schedule_interface
+            }
+        ]
+        
+        # Crear las 6 tarjetas y organizarlas en grilla (3 columnas)
+        num_cols = 3
+        for i, role in enumerate(roles):
+            row = i // num_cols
+            col = i % num_cols
+            card = styles.create_role_card(
+                cards_container,
+                role["icon"],
+                role["title"],
+                role["description"],
+                role["action"]
+            )
+            cards_layout.addWidget(card, row, col)
+        
+        main_layout.addWidget(cards_container)
+        root_layout.addWidget(main_section, 1)
 
-        row2 = styles.create_main_frame(self)
-        row2_layout = QHBoxLayout(row2)
-        row2_layout.setSpacing(10)
-        btn_security = styles.create_futuristic_button(row2, "🛡️  SEGURIDAD", lambda: self._handle_biometric_access("security"))
-        btn_cleaning = styles.create_futuristic_button(row2, "🧹  ASEO", lambda: self._handle_biometric_access("cleaning"))
-        row2_layout.addWidget(btn_security)
-        row2_layout.addWidget(btn_cleaning)
-
-        row3 = styles.create_main_frame(self)
-        row3_layout = QHBoxLayout(row3)
-        row3_layout.setSpacing(10)
-        btn_admini = styles.create_futuristic_button(row3, "📋  ADMINISTRATIVO", lambda: self._handle_biometric_access("administrative"))
-        btn_schedule = styles.create_futuristic_button(row3, "📅  VER PROGRAMACIÓN", self._show_schedule_interface)
-        row3_layout.addWidget(btn_admini)
-        row3_layout.addWidget(btn_schedule)
-
-        root_layout.addWidget(row1)
-        root_layout.addWidget(row2)
-        root_layout.addWidget(row3)
-
-        # Estado y acciones
-        status_block = styles.create_main_frame(self)
+        # Estado y acciones (mantenido del sistema original, pero con fondo claro)
+        status_block = QWidget(self)
+        status_block.setStyleSheet(f"background-color: {BG_LIGHT_HTML};")
         status_layout = QVBoxLayout(status_block)
-        status_layout.setContentsMargins(0, 0, 0, 0)
-        self.status_label = styles.create_status_label(status_block, "🟢 SISTEMA LISTO Y OPERATIVO")
+        status_layout.setContentsMargins(40, 20, 40, 20)
+        status_layout.setSpacing(12)
+        
+        self.status_label = QLabel("🟢 Sistema listo y operativo", status_block)
         self.status_label.setAlignment(Qt.AlignHCenter)
+        self.status_label.setStyleSheet(
+            f"color: {TEXT_GRAY_DARK}; "
+            f"font-size: 14px; "
+            f"font-weight: 600;"
+        )
         status_layout.addWidget(self.status_label)
 
-        info_label = styles.create_info_label(status_block, "Sistema de Control de Acceso Biométrico - CEFA")
+        info_label = QLabel("Sistema de Control de Acceso Biométrico - CEFA", status_block)
         info_label.setAlignment(Qt.AlignHCenter)
+        info_label.setStyleSheet(
+            f"color: {TEXT_GRAY_LIGHT}; "
+            f"font-size: 12px;"
+        )
         status_layout.addWidget(info_label)
 
-        actions = styles.create_main_frame(status_block)
+        actions = QWidget(status_block)
         actions_layout = QHBoxLayout(actions)
         actions_layout.setSpacing(10)
-        reload_btn = styles.create_small_button(actions, "🔄 RECARGAR CANDIDATOS", self._manual_reload_candidates)
-        db_btn = styles.create_accent_button(actions, "⚙️ CONFIGURAR BD", self._show_database_config)
+        actions_layout.setAlignment(Qt.AlignCenter)
+        
+        reload_btn = QPushButton("🔄 Recargar candidatos", actions)
+        reload_btn.setCursor(Qt.PointingHandCursor)
+        reload_btn.clicked.connect(self._manual_reload_candidates)
+        reload_btn.setStyleSheet(
+            f"background-color: transparent; "
+            f"color: {PRIMARY_COLOR}; "
+            f"border: 1px solid {BORDER_COLOR}; "
+            f"border-radius: 8px; "
+            f"padding: 8px 16px; "
+            f"font-size: 12px;"
+        )
+        
+        db_btn = QPushButton("⚙️ Configurar BD", actions)
+        db_btn.setCursor(Qt.PointingHandCursor)
+        db_btn.clicked.connect(self._show_database_config)
+        db_btn.setStyleSheet(
+            f"background-color: {PRIMARY_COLOR}; "
+            f"color: white; "
+            f"border: none; "
+            f"border-radius: 8px; "
+            f"padding: 8px 16px; "
+            f"font-size: 12px; "
+            f"font-weight: 600;"
+        )
+        
         actions_layout.addWidget(reload_btn)
         actions_layout.addWidget(db_btn)
         status_layout.addWidget(actions)
@@ -307,7 +420,8 @@ class App(QWidget):
 
     def _handle_biometric_access(self, interface_type):
         self.requested_interface = interface_type
-        self._show_fingerprint_modal()
+        # Acceso directo temporal sin verificación por huella
+        self._open_requested_interface()
 
     def _open_requested_interface(self):
         if not self.requested_interface:

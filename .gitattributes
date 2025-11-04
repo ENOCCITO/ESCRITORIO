@@ -1,0 +1,21 @@
+# Normalizar finales de línea para todos los archivos de texto
+* text=auto
+
+# Archivos Python siempre usan LF
+*.py text eol=lf
+
+# Otros archivos de texto comunes
+*.txt text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Archivos binarios
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+

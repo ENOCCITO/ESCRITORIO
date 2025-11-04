@@ -36,14 +36,14 @@ DEFAULT_DWELL = 2  # segundos (mantener 2s antes de volver a HOME)
 LOG_FILE = "dispenser.log"
 
 # ============ CONFIGURACIÓN DE INTERFAZ ============
-# Colores del tema futurista
-BG_DARK = '#0a0e1a'
-BG_MEDIUM = '#1a1f2e'
-BG_LIGHT = '#2a2f3e'
-ACCENT_BLUE = '#00d4ff'
-ACCENT_CYAN = '#00ffff'
-TEXT_WHITE = '#ffffff'
-TEXT_GRAY = '#b0b0b0'
+# Colores del tema futurista (Dark Slate refinado)
+BG_DARK = '#0b1220'
+BG_MEDIUM = '#111a2b'
+BG_LIGHT = '#162235'
+ACCENT_BLUE = '#00e5ff'
+ACCENT_CYAN = '#7dd3fc'
+TEXT_WHITE = '#e6f3ff'
+TEXT_GRAY = '#9fb3c8'
 
 # ============ CONFIGURACIÓN DE VENTANAS ============
 MAIN_WINDOW_SIZE = "1200x800"

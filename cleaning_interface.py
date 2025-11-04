@@ -8,60 +8,494 @@ cleaning_interface.py
 import styles
 from config import *
 from utils import *
-from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QMessageBox
+from PySide6.QtWidgets import (
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QWidget,
+    QMessageBox,
+    QPushButton,
+    QDialog,
+    QScrollArea,
+    QFrame,
+    QSizePolicy,
+)
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QFontMetrics, QFont, QPixmap
+import os
 
 class CleaningInterface:
     def __init__(self, parent):
         self.parent = parent
 
     def show_cleaning_interface(self):
-        cleaning_win = styles.create_modal_window(self.parent, "🧹 INTERFAZ DE ASEO - SISTEMA CEFA", "800x600")
-        main_layout = QVBoxLayout(cleaning_win)
-        main_layout.setContentsMargins(20, 15, 20, 15)
-        main_layout.setSpacing(12)
+        try:
+            # Colores consistentes con las otras interfaces (basados en el HTML de Stitch)
+            PRIMARY_COLOR = "#136dec"
+            BG_LIGHT_HTML = "#f6f7f8"
+            TEXT_GRAY_DARK = "#111418"
+            TEXT_GRAY_LIGHT = "#617289"
+            BORDER_COLOR = "#f0f2f4"
+            HEADER_DARK = "#1F2937"  # Cambiado según HTML
+            CARD_BG = "#ffffff"
+            GREEN_LIGHT = "#10b981"
+            YELLOW_LIGHT = "#fbbf24"
 
-        self._create_cleaning_header(cleaning_win, main_layout)
+            cleaning_win = QDialog(self.parent)
+            cleaning_win.setWindowTitle("Interfaz de Aseo - Sistema CEFA")
+            cleaning_win.setModal(False)
+            try:
+                w, h = [int(x) for x in ADMIN_WINDOW_SIZE.lower().split('x')]
+                cleaning_win.resize(max(w, 1000), max(h, 700))
+            except Exception:
+                cleaning_win.resize(1000, 700)
+            cleaning_win.setStyleSheet(f"background-color: {BG_LIGHT_HTML};")
 
-        content_holder = styles.create_main_frame(cleaning_win)
-        content_layout = QVBoxLayout(content_holder)
-        self._show_environment_selection(content_holder, content_layout)
-        main_layout.addWidget(content_holder)
+            root_layout = QVBoxLayout(cleaning_win)
+            root_layout.setContentsMargins(0, 0, 0, 0)
+            root_layout.setSpacing(0)
 
-        self._create_cleaning_footer(cleaning_win, cleaning_win, main_layout)
-        styles.center_window(cleaning_win)
-        cleaning_win.show()
+            # Header oscuro (sticky top)
+            header = QWidget(cleaning_win)
+            header.setFixedHeight(64)  # h-16 = 64px
+            header.setStyleSheet(f"background-color: {HEADER_DARK}; border: none;")
+            header_layout = QHBoxLayout(header)
+            header_layout.setContentsMargins(16, 0, 16, 0)  # px-4 sm:px-6 lg:px-8
+            header_layout.setSpacing(12)  # gap-3
 
-    def _create_cleaning_header(self, parent, layout):
-        header = styles.create_main_frame(parent)
-        header_layout = QVBoxLayout(header)
-        icon = styles.create_title_label(header, "🧹")
-        title = styles.create_title_label(header, "¡BIENVENIDO PERSONAL DE ASEO!")
-        header_layout.addWidget(icon)
-        header_layout.addWidget(title)
-        layout.addWidget(header)
+            # Icono y título del header
+            header_left = QWidget(header)
+            header_left_layout = QHBoxLayout(header_left)
+            header_left_layout.setContentsMargins(0, 0, 0, 0)
+            header_left_layout.setSpacing(12)
+            
+            # Icono de limpieza (escobaazul.png)
+            header_icon = QLabel(header_left)
+            header_icon.setAlignment(Qt.AlignCenter)
+            icon_path = "images/escobaazul.png"
+            if not os.path.isabs(icon_path):
+                icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), icon_path)
+            if os.path.exists(icon_path):
+                pix = QPixmap(icon_path).scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                header_icon.setPixmap(pix)
+                header_icon.setFixedSize(pix.width(), pix.height())
+                header_icon.setStyleSheet("background-color: transparent; border: none; padding: 0px; margin: 0px;")
+            else:
+                # Fallback si la imagen no se carga
+                header_icon.setText("🧹")
+                header_icon.setStyleSheet(f"color: {PRIMARY_COLOR}; font-size: 24px; background-color: transparent; border: none; padding: 0px; margin: 0px;")
+            header_left_layout.addWidget(header_icon)
 
-    def _show_environment_selection(self, parent, layout):
-        title_row = styles.create_main_frame(parent)
-        title_layout = QHBoxLayout(title_row)
-        title_layout.addWidget(styles.create_subtitle_label(title_row, "🏢"))
-        title_layout.addWidget(styles.create_subtitle_label(title_row, "SELECCIONAR AMBIENTE PARA LIMPIEZA"))
-        title_layout.addStretch(1)
-        layout.addWidget(title_row)
+            # Título del header - SIN ENCAPSULACIÓN
+            header_title = QLabel("INTERFAZ DE ASEO - SISTEMA CEFA", header_left)
+            header_title.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
+            header_title.setWordWrap(False)
+            header_title.setTextFormat(Qt.PlainText)
+            header_title.setOpenExternalLinks(False)
+            header_title.setMinimumWidth(0)
+            header_title.setMaximumWidth(16777215)
+            header_title_font = header_title.font()
+            header_title_font.setPointSize(16)  # text-base sm:text-lg
+            header_title_font.setBold(True)
+            header_title.setFont(header_title_font)
+            header_title_fm = QFontMetrics(header_title_font)
+            header_title.setMinimumWidth(header_title_fm.horizontalAdvance("INTERFAZ DE ASEO - SISTEMA CEFA"))
+            header_title.setStyleSheet(
+                f"color: white; font-size: 16px; font-weight: 700; font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; background-color: transparent; border: none; padding: 0px; margin: 0px;"
+            )
+            header_left_layout.addWidget(header_title)
+            
+            header_layout.addWidget(header_left)
+            header_layout.addStretch()
 
-        environments_frame = styles.create_main_frame(parent)
-        environments_layout = QVBoxLayout(environments_frame)
-        environments = self._get_available_environments()
-        if not environments:
-            environments_layout.addWidget(styles.create_info_label(environments_frame, "❌ No hay ambientes disponibles en la base de datos"))
-        else:
-            for env in environments:
-                env_id, nombre, descripcion, tipo_ambiente, ubicacion, piso, edificio = env
-                btn_text = f"🏢 {nombre}"
-                btn = styles.create_futuristic_button(environments_frame, btn_text, lambda eid=env_id, n=nombre: self._select_environment(eid, n))
-                environments_layout.addWidget(btn)
-                info_text = f"📍 {ubicacion} | 🏗️ {tipo_ambiente} | 🏢 {edificio}" + (f" | 🏢 Piso {piso}" if piso else "")
-                environments_layout.addWidget(styles.create_info_label(environments_frame, info_text))
-        layout.addWidget(environments_frame)
+            root_layout.addWidget(header)
+
+            # Contenido principal con scroll
+            scroll_area = QScrollArea(cleaning_win)
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setStyleSheet("border: none; background-color: transparent;")
+            scroll_area.setFrameShape(QFrame.NoFrame)
+
+            main_content = QWidget()
+            main_content.setStyleSheet(f"background-color: {BG_LIGHT_HTML};")
+            main_layout = QVBoxLayout(main_content)
+            main_layout.setContentsMargins(16, 16, 16, 16)  # p-4 sm:p-6 lg:p-8
+            main_layout.setSpacing(32)  # gap-8
+
+            # Welcome Card (flex horizontal en desktop)
+            welcome_card = QWidget(main_content)
+            welcome_card.setStyleSheet(
+                f"background-color: {CARD_BG}; "
+                f"border-radius: 12px; "
+                f"padding: 24px;"  # p-6 sm:p-8
+            )
+            welcome_layout = QHBoxLayout(welcome_card)
+            welcome_layout.setContentsMargins(0, 0, 0, 0)
+            welcome_layout.setSpacing(24)  # gap-6
+
+            # Icono grande (mop) - izquierda
+            welcome_icon_container = QWidget(welcome_card)
+            welcome_icon_container.setStyleSheet(f"background-color: transparent;")
+            welcome_icon_layout = QVBoxLayout(welcome_icon_container)
+            welcome_icon_layout.setContentsMargins(0, 0, 0, 0)
+            welcome_icon_layout.setAlignment(Qt.AlignCenter)
+            
+            welcome_icon_label = QLabel(welcome_icon_container)
+            welcome_icon_label.setAlignment(Qt.AlignCenter)
+            icon_path = "images/escobablanca.png"
+            if not os.path.isabs(icon_path):
+                icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), icon_path)
+            if os.path.exists(icon_path):
+                pix = QPixmap(icon_path).scaled(96, 96, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                welcome_icon_label.setPixmap(pix)
+                welcome_icon_label.setFixedSize(pix.width(), pix.height())
+                welcome_icon_label.setStyleSheet("background-color: transparent; border: none; padding: 0px; margin: 0px;")
+            else:
+                # Fallback si la imagen no se carga
+                welcome_icon_label.setText("🧹")
+                welcome_icon_label.setStyleSheet(f"color: {PRIMARY_COLOR}; font-size: 72px; background-color: transparent; border: none; padding: 0px; margin: 0px;")
+            welcome_icon_layout.addWidget(welcome_icon_label)
+
+            welcome_layout.addWidget(welcome_icon_container, 0, Qt.AlignCenter)
+
+            # Texto de bienvenida - derecha
+            welcome_text_block = QVBoxLayout()
+            welcome_text_block.setContentsMargins(0, 0, 0, 0)
+            welcome_text_block.setSpacing(8)  # gap-2
+
+            # Título "Gestión de Aseo" - SIN ENCAPSULACIÓN
+            welcome_title = QLabel("Gestión de Aseo", welcome_card)
+            welcome_title.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
+            welcome_title.setWordWrap(False)
+            welcome_title.setTextFormat(Qt.PlainText)
+            welcome_title.setOpenExternalLinks(False)
+            welcome_title.setMinimumWidth(0)
+            welcome_title.setMaximumWidth(16777215)
+            welcome_title_font = welcome_title.font()
+            welcome_title_font.setPointSize(30)  # text-2xl sm:text-3xl
+            welcome_title_font.setBold(True)
+            welcome_title.setFont(welcome_title_font)
+            welcome_title_fm = QFontMetrics(welcome_title_font)
+            welcome_title.setMinimumWidth(welcome_title_fm.horizontalAdvance("Gestión de Aseo"))
+            welcome_title.setStyleSheet(
+                f"color: {PRIMARY_COLOR}; font-size: 30px; font-weight: 700; font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; background-color: transparent; border: none; padding: 0px; margin: 0px;"
+            )
+            welcome_text_block.addWidget(welcome_title)
+
+            # Subtítulo - SIN ENCAPSULACIÓN
+            welcome_subtitle = QLabel(
+                "Este es el centro de control para todas las tareas de limpieza. Desde aquí puede seleccionar ambientes para limpiar y ver el estado actual.",
+                welcome_card
+            )
+            welcome_subtitle.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
+            welcome_subtitle.setWordWrap(True)
+            welcome_subtitle.setTextFormat(Qt.PlainText)
+            welcome_subtitle.setOpenExternalLinks(False)
+            welcome_subtitle_font = welcome_subtitle.font()
+            welcome_subtitle_font.setPointSize(16)  # text-base
+            welcome_subtitle.setFont(welcome_subtitle_font)
+            welcome_subtitle.setStyleSheet(
+                f"color: {TEXT_GRAY_LIGHT}; font-size: 16px; font-weight: 400; font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; background-color: transparent; border: none; padding: 0px; margin: 0px;"
+            )
+            welcome_text_block.addWidget(welcome_subtitle)
+
+            welcome_layout.addLayout(welcome_text_block, 1)
+            welcome_layout.addStretch()
+
+            main_layout.addWidget(welcome_card)
+
+            # Main Action Card - Seleccionar Ambiente
+            action_card = QWidget(main_content)
+            action_card.setStyleSheet(
+                f"background-color: {CARD_BG}; "
+                f"border-radius: 12px;"
+            )
+            action_layout = QVBoxLayout(action_card)
+            action_layout.setContentsMargins(40, 32, 40, 32)  # left, top, right, bottom - Más espacio alrededor del contenido
+            action_layout.setSpacing(24)  # gap-6
+
+            # Header con icono y título
+            action_header = QHBoxLayout()
+            action_header.setContentsMargins(0, 0, 0, 0)
+            action_header.setSpacing(16)  # gap-4
+
+            # Icono seleccionarambiente (sin cuadro, solo la imagen)
+            action_icon_label = QLabel(action_card)
+            action_icon_label.setAlignment(Qt.AlignCenter)
+            icon_path = "images/seleccionarambiente.png"
+            if not os.path.isabs(icon_path):
+                icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), icon_path)
+            if os.path.exists(icon_path):
+                pix = QPixmap(icon_path).scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                action_icon_label.setPixmap(pix)
+                action_icon_label.setFixedSize(pix.width(), pix.height())
+                action_icon_label.setStyleSheet("background-color: transparent; border: none; padding: 0px; margin: 0px;")
+            else:
+                # Fallback si la imagen no se carga
+                action_icon_label.setText("🏢")
+                action_icon_label.setStyleSheet(f"color: {PRIMARY_COLOR}; font-size: 24px; background-color: transparent; border: none; padding: 0px; margin: 0px;")
+            
+            action_header.addWidget(action_icon_label)
+
+            # Título "Seleccionar Ambiente para Limpieza" - SIN ENCAPSULACIÓN
+            action_title = QLabel("Seleccionar Ambiente para Limpieza", action_card)
+            action_title.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
+            action_title.setWordWrap(False)
+            action_title.setTextFormat(Qt.PlainText)
+            action_title.setOpenExternalLinks(False)
+            action_title.setMinimumWidth(0)
+            action_title.setMaximumWidth(16777215)
+            action_title_font = action_title.font()
+            action_title_font.setPointSize(20)  # text-xl sm:text-2xl
+            action_title_font.setBold(True)
+            action_title.setFont(action_title_font)
+            action_title_fm = QFontMetrics(action_title_font)
+            action_title.setMinimumWidth(action_title_fm.horizontalAdvance("Seleccionar Ambiente para Limpieza"))
+            action_title.setStyleSheet(
+                f"color: {TEXT_GRAY_DARK}; font-size: 20px; font-weight: 700; font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; background-color: transparent; border: none; padding: 0px; margin: 0px;"
+            )
+            action_header.addWidget(action_title)
+            action_header.addStretch()
+
+            action_layout.addLayout(action_header)
+
+            # Descripción - SIN ENCAPSULACIÓN
+            action_desc = QLabel(
+                "Haga clic en el botón a continuación para ver la lista de ambientes disponibles y seleccionar uno para comenzar el proceso de limpieza.",
+                action_card
+            )
+            action_desc.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
+            action_desc.setWordWrap(True)
+            action_desc.setTextFormat(Qt.PlainText)
+            action_desc.setOpenExternalLinks(False)
+            action_desc_font = action_desc.font()
+            action_desc_font.setPointSize(16)  # text-base
+            action_desc.setFont(action_desc_font)
+            action_desc.setStyleSheet(
+                f"color: {TEXT_GRAY_LIGHT}; font-size: 16px; font-weight: 400; font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; background-color: transparent; border: none; padding: 0px; margin: 0px;"
+            )
+            action_layout.addWidget(action_desc)
+
+            # Botón Seleccionar Ambiente
+            select_btn = QPushButton("Seleccionar Ambiente", action_card)
+            select_btn.setCursor(Qt.PointingHandCursor)
+            select_btn.setMinimumHeight(48)  # h-12
+            select_btn.setMinimumWidth(140)  # min-w-[140px]
+            select_btn.setStyleSheet(
+                f"background-color: {PRIMARY_COLOR}; "
+                f"color: white; "
+                f"border: none; "
+                f"border-radius: 8px; "
+                f"padding: 12px 24px; "
+                f"font-size: 16px; "
+                f"font-weight: 500; "
+                f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
+            )
+            select_btn.clicked.connect(self._open_environment_selector)
+            action_layout.addWidget(select_btn, 0, Qt.AlignLeft)
+
+            main_layout.addWidget(action_card)
+
+            # Sección "Ambientes disponibles para limpieza"
+            list_section = QWidget(main_content)
+            list_section_layout = QVBoxLayout(list_section)
+            list_section_layout.setContentsMargins(0, 0, 0, 0)
+            list_section_layout.setSpacing(16)  # gap-4
+
+            # Título de la sección
+            list_title = QLabel("Ambientes disponibles para limpieza", list_section)
+            list_title.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
+            list_title.setWordWrap(False)
+            list_title.setTextFormat(Qt.PlainText)
+            list_title.setOpenExternalLinks(False)
+            list_title.setMinimumWidth(0)
+            list_title.setMaximumWidth(16777215)
+            list_title_font = list_title.font()
+            list_title_font.setPointSize(20)  # text-xl sm:text-2xl
+            list_title_font.setBold(True)
+            list_title.setFont(list_title_font)
+            list_title_fm = QFontMetrics(list_title_font)
+            list_title.setMinimumWidth(list_title_fm.horizontalAdvance("Ambientes disponibles para limpieza"))
+            list_title.setStyleSheet(
+                f"color: {TEXT_GRAY_DARK}; font-size: 20px; font-weight: 700; font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; background-color: transparent; border: none; padding: 8px; margin: 0px;"
+            )
+            list_section_layout.addWidget(list_title)
+
+            # Lista de ambientes
+            list_container = QWidget(list_section)
+            list_container.setStyleSheet(
+                f"background-color: {CARD_BG}; "
+                f"border-radius: 12px;"
+            )
+            list_container_layout = QVBoxLayout(list_container)
+            list_container_layout.setContentsMargins(0, 0, 0, 0)
+            list_container_layout.setSpacing(0)
+
+            # Obtener ambientes de la base de datos
+            environments = self._get_available_environments()
+            if not environments:
+                # Mensaje si no hay ambientes
+                no_env_label = QLabel("No hay ambientes disponibles en este momento.", list_container)
+                no_env_label.setAlignment(Qt.AlignCenter)
+                no_env_label.setStyleSheet(
+                    f"color: {TEXT_GRAY_LIGHT}; font-size: 14px; padding: 24px;"
+                )
+                list_container_layout.addWidget(no_env_label)
+            else:
+                # Mostrar primeros 3 ambientes como ejemplo (similar al HTML)
+                sample_environments = [
+                    ("Salón 101", "Piso 1 - Limpieza requerida", "Disponible"),
+                    ("Oficina 205", "Piso 2 - Limpieza programada", "Ocupado"),
+                    ("Auditorio Principal", "Planta Baja - Limpieza requerida", "Disponible"),
+                ]
+                
+                for i, (env_name, env_desc, env_status) in enumerate(sample_environments):
+                    env_item = QWidget(list_container)
+                    env_item.setMinimumHeight(72)  # min-h-[72px]
+                    env_item.setStyleSheet(
+                        f"background-color: transparent; "
+                        f"border-bottom: 1px solid {BORDER_COLOR};"
+                    )
+                    if i == len(sample_environments) - 1:
+                        # Último item sin borde inferior
+                        env_item.setStyleSheet(f"background-color: transparent;")
+                    
+                    env_item_layout = QHBoxLayout(env_item)
+                    env_item_layout.setContentsMargins(16, 16, 16, 16)  # p-4
+                    env_item_layout.setSpacing(16)  # gap-4
+
+                    # Icono
+                    item_icon_container = QWidget(env_item)
+                    item_icon_container.setFixedSize(48, 48)  # size-12
+                    item_icon_container.setStyleSheet(
+                        f"background-color: rgba(19, 109, 236, 0.2); "
+                        f"border-radius: 8px;"
+                    )
+                    item_icon_layout = QVBoxLayout(item_icon_container)
+                    item_icon_layout.setContentsMargins(0, 0, 0, 0)
+                    item_icon_layout.setAlignment(Qt.AlignCenter)
+                    
+                    item_icon = QLabel(item_icon_container)
+                    item_icon.setAlignment(Qt.AlignCenter)
+                    item_icon.setText("🏢")  # meeting_room emoji
+                    item_icon.setStyleSheet(f"color: {PRIMARY_COLOR}; font-size: 24px; background-color: transparent; border: none; padding: 0px; margin: 0px;")
+                    item_icon_layout.addWidget(item_icon)
+                    
+                    env_item_layout.addWidget(item_icon_container)
+
+                    # Información del ambiente
+                    env_info_layout = QVBoxLayout()
+                    env_info_layout.setContentsMargins(0, 0, 0, 0)
+                    env_info_layout.setSpacing(4)
+
+                    env_name_label = QLabel(env_name, env_item)
+                    env_name_label.setStyleSheet(
+                        f"color: {TEXT_GRAY_DARK}; font-size: 16px; font-weight: 500; background-color: transparent; border: none; padding: 0px; margin: 0px;"
+                    )
+                    env_info_layout.addWidget(env_name_label)
+
+                    env_desc_label = QLabel(env_desc, env_item)
+                    env_desc_label.setStyleSheet(
+                        f"color: {TEXT_GRAY_LIGHT}; font-size: 14px; font-weight: 400; background-color: transparent; border: none; padding: 0px; margin: 0px;"
+                    )
+                    env_info_layout.addWidget(env_desc_label)
+
+                    env_item_layout.addLayout(env_info_layout, 1)
+
+                    # Estado (chip)
+                    status_chip = QLabel(env_item)
+                    status_chip.setAlignment(Qt.AlignCenter)
+                    status_chip.setText(env_status)
+                    if env_status == "Disponible":
+                        status_chip.setStyleSheet(
+                            f"background-color: rgba(16, 185, 129, 0.1); "  # green-100
+                            f"color: #065f46; "  # green-800
+                            f"border-radius: 9999px; "
+                            f"padding: 4px 12px; "
+                            f"font-size: 14px; "
+                            f"font-weight: 500;"
+                        )
+                    else:
+                        status_chip.setStyleSheet(
+                            f"background-color: rgba(251, 191, 36, 0.1); "  # yellow-100
+                            f"color: #92400e; "  # yellow-800
+                            f"border-radius: 9999px; "
+                            f"padding: 4px 12px; "
+                            f"font-size: 14px; "
+                            f"font-weight: 500;"
+                        )
+                    env_item_layout.addWidget(status_chip, 0, Qt.AlignRight)
+
+                    list_container_layout.addWidget(env_item)
+
+            list_section_layout.addWidget(list_container)
+            main_layout.addWidget(list_section)
+
+            # Footer
+            footer = QWidget(cleaning_win)
+            footer.setFixedHeight(64)  # h-16
+            footer.setStyleSheet(
+                f"background-color: {CARD_BG}; "
+                f"border-top: 1px solid {BORDER_COLOR};"
+            )
+            footer_layout = QHBoxLayout(footer)
+            footer_layout.setContentsMargins(16, 0, 16, 0)  # px-4 sm:px-6 lg:px-8
+            footer_layout.addStretch()
+
+            # Botón Cerrar
+            close_btn = QPushButton("Cerrar", footer)
+            close_btn.setCursor(Qt.PointingHandCursor)
+            close_btn.setMinimumHeight(40)  # h-10
+            close_btn.setMinimumWidth(100)  # min-w-[100px]
+            close_btn.setStyleSheet(
+                f"background-color: #e5e7eb; "  # bg-gray-200
+                f"color: {TEXT_GRAY_DARK}; "
+                f"border: none; "
+                f"border-radius: 8px; "
+                f"padding: 8px 20px; "
+                f"font-size: 14px; "
+                f"font-weight: 500; "
+                f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
+            )
+            close_btn.clicked.connect(cleaning_win.close)
+            footer_layout.addWidget(close_btn)
+
+            scroll_area.setWidget(main_content)
+            root_layout.addWidget(scroll_area, 1)
+            
+            root_layout.addWidget(footer)
+
+            styles.center_window(cleaning_win)
+            cleaning_win.show()
+
+        except Exception as e:
+            QMessageBox.critical(self.parent, "Error", f"Error al mostrar la interfaz de aseo:\n{e}")
+            import traceback
+            traceback.print_exc()
+
+    def _open_environment_selector(self):
+        """Abre el selector de ambientes"""
+        try:
+            from utils import get_available_environments
+            environments = get_available_environments()
+            
+            if not environments:
+                QMessageBox.information(
+                    self.parent,
+                    "Sin ambientes",
+                    "No hay ambientes disponibles en la base de datos."
+                )
+                return
+            
+            # Mostrar diálogo de selección
+            QMessageBox.information(
+                self.parent,
+                "Seleccionar Ambiente",
+                f"Se encontraron {len(environments)} ambientes disponibles.\n\n"
+                "Funcionalidad de selección en desarrollo."
+            )
+        except Exception as e:
+            QMessageBox.critical(self.parent, "Error", f"Error abriendo selector de ambientes:\n{e}")
 
     def _get_available_environments(self):
         """Obtiene los ambientes disponibles de la base de datos"""
@@ -82,308 +516,3 @@ class CleaningInterface:
         # Aquí se integraría con la lógica del sistema original
         # para configurar la limpieza del ambiente seleccionado
         print(f"✅ Ambiente seleccionado: {environment_name} (ID: {environment_id})")
-
-    def _create_cleaning_footer(self, parent, window, layout):
-        footer = styles.create_main_frame(parent)
-        footer_layout = QHBoxLayout(footer)
-        logout_btn = styles.create_danger_button(footer, "🚪 CERRAR SESIÓN", window.close)
-        footer_layout.addStretch(1)
-        footer_layout.addWidget(logout_btn)
-        layout.addWidget(footer)
-
-    def _show_cleaning_schedule(self, parent_window):
-        """Muestra la programación de limpieza del campus"""
-        # Crear ventana de programación de limpieza
-        schedule_win = styles.create_modal_window(self.parent, "📅 PROGRAMACIÓN DE LIMPIEZA", ENVIRONMENT_WINDOW_SIZE)
-        
-        # Título
-        title_label = styles.create_title_label(schedule_win, "📅 PROGRAMACIÓN DE LIMPIEZA")
-        title_label.pack(pady=(20, 10))
-        
-        subtitle_label = styles.create_subtitle_label(schedule_win, "Horarios y áreas de limpieza del campus")
-        subtitle_label.pack(pady=(0, 30))
-        
-        # Contenedor principal
-        main_frame = styles.create_content_frame(schedule_win)
-        main_frame.pack(fill="both", expand=True, padx=20, pady=10)
-        
-        # Área de texto con scroll
-        text_frame = styles.create_main_frame(main_frame)
-        text_frame.pack(fill="both", expand=True, padx=15, pady=15)
-        
-        schedule_text = styles.create_text_widget(text_frame, height=20)
-        
-        schedule_scrollbar = styles.create_scrollbar(text_frame, orient="vertical", command=schedule_text.yview)
-        schedule_text.configure(yscrollcommand=schedule_scrollbar.set)
-        
-        schedule_text.pack(side="left", fill="both", expand=True)
-        schedule_scrollbar.pack(side="right", fill="y")
-        
-        # Contenido de la programación de limpieza
-        cleaning_schedule_content = """
-📅 PROGRAMACIÓN DE LIMPIEZA - SISTEMA CEFA
-
-🕐 HORARIOS DE LIMPIEZA:
-
-LUNES A VIERNES:
-   • 5:00 AM - 7:00 AM: Limpieza general del campus
-   • 8:00 AM - 9:00 AM: Limpieza de aulas y laboratorios
-   • 12:00 PM - 1:00 PM: Limpieza de cafetería y áreas comunes
-   • 3:00 PM - 4:00 PM: Limpieza de oficinas administrativas
-   • 6:00 PM - 7:00 PM: Limpieza de pasillos y entradas
-   • 9:00 PM - 11:00 PM: Limpieza final y desinfección
-
-SÁBADOS:
-   • 7:00 AM - 9:00 AM: Limpieza profunda de laboratorios
-   • 10:00 AM - 12:00 PM: Limpieza de biblioteca
-   • 2:00 PM - 4:00 PM: Limpieza de auditorio y salas
-
-DOMINGOS:
-   • 8:00 AM - 10:00 AM: Limpieza general del campus
-   • 2:00 PM - 4:00 PM: Mantenimiento preventivo
-
-🧹 ÁREAS DE RESPONSABILIDAD:
-
-ZONA 1 - EDIFICIO PRINCIPAL:
-   • Aulas 101-105
-   • Pasillos principales
-   • Recepción y lobby
-   • Baños públicos
-
-ZONA 2 - LABORATORIOS:
-   • Laboratorios 201-205
-   • Sala de equipos
-   • Almacén de materiales
-   • Área de trabajo
-
-ZONA 3 - ÁREAS COMUNES:
-   • Cafetería
-   • Biblioteca
-   • Auditorio
-   • Salas de reunión
-
-ZONA 4 - EXTERIORES:
-   • Entrada principal
-   • Estacionamiento
-   • Jardines
-   • Áreas deportivas
-
-⚠️ NOTAS IMPORTANTES:
-   • Usar equipos de protección personal
-   • Seguir protocolos de desinfección
-   • Reportar daños o problemas
-   • Mantener registro de actividades
-        """
-        
-        schedule_text.insert("1.0", cleaning_schedule_content)
-        schedule_text.config(state="disabled")  # Solo lectura
-        
-        # Botón de cerrar
-        close_btn = styles.create_accent_button(
-            schedule_win, 
-            "✅ CERRAR", 
-            schedule_win.destroy
-        )
-        close_btn.pack(pady=20)
-        
-        # Centrar la ventana
-        styles.center_window(schedule_win)
-
-    def _show_maintenance_control(self, parent_window):
-        """Muestra el control de mantenimiento del campus"""
-        # Crear ventana de control de mantenimiento
-        maintenance_win = styles.create_modal_window(self.parent, "🔧 CONTROL DE MANTENIMIENTO", ENVIRONMENT_WINDOW_SIZE)
-        
-        # Título
-        title_label = styles.create_title_label(maintenance_win, "🔧 CONTROL DE MANTENIMIENTO")
-        title_label.pack(pady=(20, 10))
-        
-        subtitle_label = styles.create_subtitle_label(maintenance_win, "Gestión de mantenimiento preventivo y correctivo")
-        subtitle_label.pack(pady=(0, 30))
-        
-        # Contenedor principal para el control de mantenimiento
-        grid_container = styles.create_main_frame(maintenance_win)
-        grid_container.pack(expand=True, padx=40, pady=20)
-        
-        # Configurar el grid 3x4
-        for i in range(3):
-            grid_container.grid_rowconfigure(i, weight=1)
-        for i in range(4):
-            grid_container.grid_columnconfigure(i, weight=1)
-        
-        # Lista de áreas de mantenimiento
-        maintenance_areas = [
-            "Sistema Eléctrico", "Sistema de Agua", "Aire Acondicionado", "Sistema de Seguridad",
-            "Equipos de Limpieza", "Mobiliario", "Pintura y Decoración", "Jardinería",
-            "Plomería", "Carpintería", "Herrería", "Albañilería"
-        ]
-        
-        # Crear botones de áreas de mantenimiento con estilo futurista
-        for i, maintenance_area in enumerate(maintenance_areas):
-            row = i // 4
-            col = i % 4
-            
-            maintenance_btn = styles.create_futuristic_button(
-                grid_container, 
-                maintenance_area, 
-                lambda area=maintenance_area: self._control_maintenance_area(area),
-                width=15, 
-                height=2
-            )
-            
-            # Aplicar efectos de hover
-            styles.apply_button_hover_effects(maintenance_btn)
-            maintenance_btn.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
-        
-        # Botones de control
-        control_frame = styles.create_main_frame(maintenance_win)
-        control_frame.pack(fill="x", padx=40, pady=20)
-        
-        # Botón para cerrar
-        close_btn = styles.create_danger_button(
-            control_frame, 
-            "❌ CERRAR", 
-            maintenance_win.destroy
-        )
-        close_btn.pack(side="right")
-        
-        # Centrar la ventana
-        styles.center_window(maintenance_win)
-
-    def _show_cleaning_reports(self, parent_window):
-        """Muestra los reportes de limpieza"""
-        # Crear ventana de reportes de limpieza
-        reports_win = styles.create_modal_window(self.parent, "📊 REPORTES DE LIMPIEZA", ENVIRONMENT_WINDOW_SIZE)
-        
-        # Título
-        title_label = styles.create_title_label(reports_win, "📊 REPORTES DE LIMPIEZA")
-        title_label.pack(pady=(20, 10))
-        
-        subtitle_label = styles.create_subtitle_label(reports_win, "Estadísticas y reportes de limpieza del campus")
-        subtitle_label.pack(pady=(0, 30))
-        
-        # Contenedor principal
-        main_frame = styles.create_content_frame(reports_win)
-        main_frame.pack(fill="both", expand=True, padx=20, pady=10)
-        
-        # Frame para estadísticas de limpieza
-        stats_frame = styles.create_main_frame(main_frame)
-        stats_frame.pack(fill="x", padx=15, pady=15)
-        
-        # Estadísticas de limpieza
-        cleaning_stats_content = """
-📊 ESTADÍSTICAS DE LIMPIEZA
-
-🧹 ACTIVIDADES REALIZADAS:
-   • Limpieza de aulas: 45/45 (100%)
-   • Limpieza de laboratorios: 12/12 (100%)
-   • Limpieza de oficinas: 25/25 (100%)
-   • Limpieza de áreas comunes: 15/15 (100%)
-
-⏱️ TIEMPO DE LIMPIEZA:
-   • Tiempo promedio por aula: 15 min
-   • Tiempo promedio por laboratorio: 25 min
-   • Tiempo promedio por oficina: 10 min
-   • Tiempo total diario: 8 horas
-
-🔧 MANTENIMIENTO:
-   • Equipos revisados: 18/18 (100%)
-   • Reparaciones realizadas: 3
-   • Mantenimiento preventivo: 5
-   • Solicitudes pendientes: 0
-
-👥 PERSONAL:
-   • Personal activo: 8
-   • Turnos completados: 12/12
-   • Horas trabajadas: 96
-   • Eficiencia promedio: 95%
-
-📋 MATERIALES UTILIZADOS:
-   • Productos de limpieza: 85%
-   • Materiales de desinfección: 90%
-   • Equipos de protección: 100%
-   • Herramientas de mantenimiento: 100%
-
-⚠️ INCIDENTES:
-   • Incidentes reportados: 0
-   • Problemas de equipos: 0
-   • Quejas de usuarios: 0
-   • Tiempo de respuesta: < 30 min
-        """
-        
-        # Crear etiquetas para las estadísticas de limpieza
-        stats_lines = cleaning_stats_content.strip().split('\n')
-        for i, line in enumerate(stats_lines):
-            if line.strip():
-                label = styles.create_info_label(stats_frame, line)
-                label.pack(anchor="w", pady=2)
-        
-        # Botones de control
-        control_frame = styles.create_main_frame(reports_win)
-        control_frame.pack(fill="x", padx=20, pady=20)
-        
-        # Botón para exportar reporte
-        export_btn = styles.create_accent_button(
-            control_frame, 
-            "📊 EXPORTAR REPORTE", 
-            lambda: self._export_cleaning_report()
-        )
-        export_btn.pack(side="left", padx=(0, 10))
-        
-        # Botón para cerrar
-        close_btn = styles.create_danger_button(
-            control_frame, 
-            "❌ CERRAR", 
-            reports_win.destroy
-        )
-        close_btn.pack(side="right")
-        
-        # Centrar la ventana
-        styles.center_window(reports_win)
-
-    def _control_maintenance_area(self, maintenance_area):
-        """Maneja el control de un área de mantenimiento específica"""
-        messagebox.showinfo("🔧 CONTROL DE MANTENIMIENTO", 
-                           f"Gestionando: {maintenance_area}\n\n"
-                           "El sistema está configurando el control de mantenimiento para esta área.\n"
-                           "Por favor, espere la confirmación del sistema.")
-        
-        # Aquí se integraría con la lógica del sistema original
-        # para configurar el control de mantenimiento del área seleccionada
-
-    def _export_cleaning_report(self):
-        """Exporta el reporte de limpieza"""
-        try:
-            from datetime import datetime
-            
-            # Nombre del archivo con timestamp
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"reporte_limpieza_{timestamp}.csv"
-            
-            # Datos del reporte de limpieza
-            report_data = [
-                ['REPORTE DE LIMPIEZA - SISTEMA CEFA'],
-                ['Fecha de exportación', datetime.now().strftime("%Y-%m-%d %H:%M:%S")],
-                [],
-                ['ESTADÍSTICAS DE LIMPIEZA'],
-                ['Limpieza de aulas', '45/45 (100%)'],
-                ['Limpieza de laboratorios', '12/12 (100%)'],
-                ['Limpieza de oficinas', '25/25 (100%)'],
-                ['Limpieza de áreas comunes', '15/15 (100%)'],
-                ['Tiempo total diario', '8 horas'],
-                ['Personal activo', '8'],
-                ['Turnos completados', '12/12'],
-                ['Eficiencia promedio', '95%']
-            ]
-            
-            if export_to_csv(report_data, filename):
-                messagebox.showinfo("📊 EXPORTACIÓN EXITOSA", 
-                                  f"El reporte de limpieza se ha exportado correctamente a:\n\n{filename}")
-                
-                # Abrir el archivo exportado
-                open_file(filename)
-            else:
-                messagebox.showerror("❌ ERROR", "Error al exportar el reporte de limpieza.")
-                
-        except Exception as e:
-            messagebox.showerror("🚨 ERROR", f"Error al exportar el reporte de limpieza:\n\n{e}")

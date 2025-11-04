@@ -8,8 +8,10 @@ instructor_interface.py
 import styles
 from config import *
 from utils import *
-from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QMessageBox, QPushButton, QApplication, QDialog
+from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QMessageBox, QPushButton, QApplication, QDialog, QScrollArea, QFrame, QSizePolicy
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFontMetrics, QFont, QPixmap
+import os
 from key_manager import KeyManager
 from fingerprint_validator import FingerprintValidator
 from db_utils import get_instructor_week_schedule, get_personal_by_id, db_connect
@@ -31,29 +33,198 @@ class InstructorInterface:
         self._status_by_day = {}
         
     def show_instructor_interface(self):
-        instructor_win = styles.create_modal_window(self.parent, "👨‍🏫 INTERFAZ DE INSTRUCTOR - SISTEMA CEFA", "1000x700")
-        main_layout = QVBoxLayout(instructor_win)
-        main_layout.setContentsMargins(20, 15, 20, 15)
-        main_layout.setSpacing(12)
-
-        self._create_futuristic_header(instructor_win, main_layout)
-
-        # Scroll central para contenido responsive
-        scroll = styles.create_scroll_area(instructor_win)
-        content = styles.create_main_frame(scroll)
-        scroll.setWidget(content)
-        main_layout.addWidget(scroll, 1)
-
-        info_layout = QVBoxLayout(content)
-        info_layout.setContentsMargins(0, 0, 0, 0)
-        info_layout.setSpacing(12)
-
-        self._show_assigned_environment_futuristic(content, info_layout)
-        self._show_instructor_calendar(content, info_layout)
-
-        self._create_futuristic_footer(instructor_win, instructor_win, main_layout)
-        styles.center_window(instructor_win)
-        instructor_win.show()
+        try:
+            # Colores exactos del HTML de Stitch AI
+            PRIMARY_COLOR = "#136dec"
+            BG_LIGHT_HTML = "#f6f7f8"
+            TEXT_GRAY_DARK = "#111418"
+            TEXT_GRAY_LIGHT = "#617289"
+            BORDER_COLOR = "#f0f2f4"
+            HEADER_DARK = "#2D3748"  # Exacto del HTML
+            CARD_BG = "#ffffff"
+            
+            from PySide6.QtWidgets import QDialog, QScrollArea, QFrame
+            instructor_win = QDialog(self.parent)
+            instructor_win.setWindowTitle("Interfaz de Instructor - Sistema CEFA")
+            instructor_win.setModal(False)
+            try:
+                # Intentar obtener tamaño desde config, sino usar por defecto
+                from config import INSTRUCTOR_WINDOW_SIZE
+                w, h = [int(x) for x in INSTRUCTOR_WINDOW_SIZE.lower().split('x')]
+                instructor_win.resize(w, h)
+            except Exception:
+                instructor_win.resize(1000, 700)
+            instructor_win.setStyleSheet(f"background-color: {BG_LIGHT_HTML};")
+            
+            root_layout = QVBoxLayout(instructor_win)
+            root_layout.setContentsMargins(0, 0, 0, 0)
+            root_layout.setSpacing(0)
+            
+            # Header oscuro fijo (exacto del HTML: bg-[#2D3748])
+            header = QWidget(instructor_win)
+            header.setFixedHeight(68)  # py-3 = 12px top/bottom = 48px + contenido
+            header.setStyleSheet(
+                f"background-color: {HEADER_DARK}; "
+                f"border: none;"
+            )
+            header_layout = QHBoxLayout(header)
+            header_layout.setContentsMargins(24, 12, 24, 12)  # px-6 = 24px, py-3 = 12px
+            header_layout.setSpacing(16)
+            
+            # Logo/ícono (SVG convertido a texto simple)
+            logo_label = QLabel("⚡", header)  # Usar emoji como representación del logo
+            logo_label.setFixedSize(24, 24)
+            logo_label.setAlignment(Qt.AlignCenter)
+            logo_label.setStyleSheet(
+                f"color: white; "
+                f"font-size: 24px;"
+            )
+            header_layout.addWidget(logo_label)
+            
+            # Título del header - SIN ENCAPSULACIÓN
+            header_title = QLabel("INTERFAZ DE INSTRUCTOR - SISTEMA CEFA", header)
+            header_title.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
+            header_title.setWordWrap(False)
+            header_title.setTextFormat(Qt.PlainText)
+            header_title.setOpenExternalLinks(False)
+            header_title.setMinimumWidth(0)
+            header_title.setMaximumWidth(16777215)
+            header_title.setMinimumHeight(0)
+            header_font = header_title.font()
+            header_font.setPointSize(18)
+            header_font.setBold(True)
+            header_title.setFont(header_font)
+            header_fm = QFontMetrics(header_font)
+            header_text_width = header_fm.horizontalAdvance("INTERFAZ DE INSTRUCTOR - SISTEMA CEFA")
+            header_title.setMinimumWidth(header_text_width)
+            header_title.setStyleSheet(
+                f"color: white; "
+                f"font-size: 18px; "
+                f"font-weight: 700; "
+                f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; "
+                f"background-color: transparent; "
+                f"border: none; "
+                f"padding: 0px; "
+                f"margin: 0px;"
+            )
+            header_layout.addWidget(header_title)
+            header_layout.addStretch()
+            
+            root_layout.addWidget(header)
+            
+            # Contenido principal con scroll (exacto del HTML)
+            scroll = QScrollArea(instructor_win)
+            scroll.setWidgetResizable(True)
+            scroll.setStyleSheet(f"background-color: {BG_LIGHT_HTML}; border: none;")
+            scroll.setFrameShape(QFrame.NoFrame)
+            
+            main_content = QWidget()
+            main_content.setStyleSheet(f"background-color: {BG_LIGHT_HTML};")
+            main_layout = QVBoxLayout(main_content)
+            main_layout.setContentsMargins(40, 20, 40, 20)  # px-4 sm:px-8 md:px-16 lg:px-40 py-5
+            main_layout.setSpacing(32)  # mb-8 = 32px (gap entre secciones)
+            
+            # Sección de bienvenida (exacto del HTML)
+            welcome_container = QWidget(main_content)
+            welcome_container.setStyleSheet(
+                f"background-color: {CARD_BG}; "
+                f"border-radius: 12px; "
+                f"padding: 24px;"
+            )
+            welcome_layout = QHBoxLayout(welcome_container)
+            welcome_layout.setContentsMargins(0, 0, 0, 0)
+            welcome_layout.setSpacing(16)
+            
+            # Icono de imagen (sin círculo de fondo)
+            icon_label = QLabel(welcome_container)
+            icon_label.setAlignment(Qt.AlignCenter)
+            
+            # Cargar imagen de saludo
+            image_path = "images/saludo.jpg"
+            if not os.path.isabs(image_path):
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                full_image_path = os.path.join(script_dir, image_path)
+            else:
+                full_image_path = image_path
+            
+            if os.path.exists(full_image_path):
+                pixmap = QPixmap(full_image_path)
+                # Escalar la imagen a un tamaño adecuado (80x80 para que se vea bien)
+                scaled_pixmap = pixmap.scaled(
+                    80, 80,
+                    Qt.KeepAspectRatio,
+                    Qt.SmoothTransformation
+                )
+                icon_label.setPixmap(scaled_pixmap)
+                icon_label.setStyleSheet(
+                    "background-color: transparent; "
+                    "border: none; "
+                    "padding: 0px; "
+                    "margin: 0px;"
+                )
+                icon_label.setFixedSize(scaled_pixmap.width(), scaled_pixmap.height())
+            else:
+                # Fallback si la imagen no existe
+                icon_label.setText("👋")
+                icon_label.setStyleSheet(
+                    f"color: {PRIMARY_COLOR}; "
+                    f"font-size: 36px; "
+                    f"background-color: transparent; "
+                    f"border: none; "
+                    f"padding: 0px; "
+                    f"margin: 0px;"
+                )
+            
+            welcome_layout.addWidget(icon_label)
+            
+            # Título de bienvenida - SIN ENCAPSULACIÓN
+            welcome_title = QLabel("¡BIENVENIDO INSTRUCTOR!", welcome_container)
+            welcome_title.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
+            welcome_title.setWordWrap(False)
+            welcome_title.setTextFormat(Qt.PlainText)
+            welcome_title.setOpenExternalLinks(False)
+            welcome_title.setMinimumWidth(0)
+            welcome_title.setMaximumWidth(16777215)
+            welcome_title.setMinimumHeight(0)
+            welcome_font = welcome_title.font()
+            welcome_font.setPointSize(30)
+            welcome_font.setBold(True)
+            welcome_title.setFont(welcome_font)
+            welcome_fm = QFontMetrics(welcome_font)
+            welcome_text_width = welcome_fm.horizontalAdvance("¡BIENVENIDO INSTRUCTOR!")
+            welcome_title.setMinimumWidth(welcome_text_width)
+            welcome_title.setStyleSheet(
+                f"color: {TEXT_GRAY_DARK}; "
+                f"font-size: 30px; "
+                f"font-weight: 700; "
+                f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; "
+                f"background-color: transparent; "
+                f"border: none; "
+                f"padding: 0px; "
+                f"margin: 0px;"
+            )
+            welcome_layout.addWidget(welcome_title)
+            welcome_layout.addStretch(1)
+            
+            main_layout.addWidget(welcome_container)
+            
+            # Sección AMBIENTE ASIGNADO
+            self._show_assigned_environment_stitch_new(main_content, main_layout)
+            
+            # Sección HORARIO DE CLASES
+            self._show_instructor_calendar_stitch_new(main_content, main_layout)
+            
+            scroll.setWidget(main_content)
+            root_layout.addWidget(scroll, 1)
+            
+            styles.center_window(instructor_win)
+            instructor_win.show()
+            print("✅ Interfaz de instructor mostrada correctamente")
+        except Exception as e:
+            print(f"❌ Error mostrando interfaz de instructor: {e}")
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(self.parent, "Error", f"Error mostrando interfaz de instructor:\n{e}")
 
     def _create_futuristic_header(self, parent, layout):
         header = styles.create_main_frame(parent)
@@ -71,26 +242,545 @@ class InstructorInterface:
         header_layout.addWidget(title)
         layout.addWidget(header)
 
-    def _show_assigned_environment_futuristic(self, parent, layout):
-        block = styles.create_main_frame(parent)
-        block_layout = QVBoxLayout(block)
-        block_layout.addWidget(styles.create_subtitle_label(block, "AMBIENTE ASIGNADO"))
+    def _show_assigned_environment_stitch_new(self, parent, layout):
+        """Muestra la sección AMBIENTE ASIGNADO con diseño exacto del HTML de Stitch AI"""
+        PRIMARY_COLOR = "#136dec"
+        CARD_BG = "#ffffff"
+        TEXT_GRAY_DARK = "#111418"
+        TEXT_GRAY_LIGHT = "#617289"
+        BORDER_COLOR = "#f0f2f4"
+        
+        # Contenedor de tarjeta blanca (exacto del HTML) - Más padding horizontal
+        env_container = QWidget(parent)
+        env_container.setStyleSheet(
+            f"background-color: {CARD_BG}; "
+            f"border-radius: 12px;"
+        )
+        env_layout = QVBoxLayout(env_container)
+        env_layout.setContentsMargins(60, 24, 60, 24)  # left, top, right, bottom - Más espacio horizontal (60px)
+        env_layout.setSpacing(16)
+        
+        # Título con borde inferior - SIN ENCAPSULACIÓN
+        title_label = QLabel("AMBIENTE ASIGNADO", env_container)
+        title_label.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
+        title_label.setWordWrap(False)
+        title_label.setTextFormat(Qt.PlainText)
+        title_label.setOpenExternalLinks(False)
+        title_label.setMinimumWidth(0)
+        title_label.setMaximumWidth(16777215)
+        title_label.setMinimumHeight(0)
+        title_font = title_label.font()
+        title_font.setPointSize(20)
+        title_font.setBold(True)
+        title_label.setFont(title_font)
+        title_fm = QFontMetrics(title_font)
+        title_text_width = title_fm.horizontalAdvance("AMBIENTE ASIGNADO")
+        title_label.setMinimumWidth(title_text_width)
+        title_label.setStyleSheet(
+            f"color: {TEXT_GRAY_DARK}; "
+            f"font-size: 20px; "
+            f"font-weight: 700; "
+            f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; "
+            f"border-bottom: 1px solid {BORDER_COLOR}; "
+            f"padding-bottom: 16px; "
+            f"margin-bottom: 16px; "
+            f"background-color: transparent; "
+            f"border-left: none; "
+            f"border-right: none; "
+            f"border-top: none; "
+            f"padding-left: 0px; "
+            f"padding-right: 0px; "
+            f"padding-top: 0px; "
+            f"margin-left: 0px; "
+            f"margin-right: 0px; "
+            f"margin-top: 0px;"
+        )
+        env_layout.addWidget(title_label)
+        
+        # Lista de elementos del ambiente (exacto del HTML) - Usar imágenes si existen
         details = [
-            ("📍", "AULA PRINCIPAL", "Aula 101 - Laboratorio de Programación"),
-            ("🔧", "EQUIPOS", "25 computadoras, Proyector 4K, Pizarra digital"),
-            ("👥", "CAPACIDAD", "30 estudiantes"),
-            ("🌐", "CONECTIVIDAD", "WiFi de alta velocidad, Red cableada"),
-            ("📚", "RECURSOS", "Software de desarrollo, Bibliotecas digitales"),
+            ("images/aula.jpg", "🚪", "Aula", "505", "#10b981"),  # green-500 (door_open)
+            ("images/equipos.jpg", "💻", "Equipos", "25 Computadores", "#3b82f6"),  # blue-500 (desktop_windows)
+            ("images/capacidad.jpg", "👥", "Capacidad", "30 Estudiantes", "#8b5cf6"),  # purple-500 (groups)
+            ("images/conectividad.jpg", "📶", "Conectividad", "Disponible", "#14b8a6"),  # teal-500 (wifi)
+            ("images/recursos.jpg", "📹", "Recursos", "Video Beam", "#f97316"),  # orange-500 (video_camera_front)
         ]
-        for icon, label, value in details:
-            row = styles.create_main_frame(block)
+        
+        for icon_path, icon_emoji, label, value, icon_color in details:
+            row = QWidget(env_container)
+            row.setMinimumHeight(56)  # min-h-14 = 56px
             row_layout = QHBoxLayout(row)
-            row_layout.addWidget(QLabel(icon))
-            row_layout.addWidget(styles.create_info_label(block, f"{label}:"))
-            row_layout.addWidget(styles.create_info_label(block, value))
+            row_layout.setContentsMargins(0, 0, 0, 0)  # Los márgenes se manejan en el contenedor padre
+            row_layout.setSpacing(16)
+            
+            # Icono - Usar imagen si existe, sino emoji con contenedor circular
+            is_image = False
+            icon_label = QLabel(row)
+            icon_label.setAlignment(Qt.AlignCenter)
+            
+            # Verificar si es una ruta de imagen y si existe
+            if isinstance(icon_path, str) and icon_path.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.svg')):
+                # Obtener la ruta absoluta
+                if not os.path.isabs(icon_path):
+                    script_dir = os.path.dirname(os.path.abspath(__file__))
+                    full_image_path = os.path.join(script_dir, icon_path)
+                else:
+                    full_image_path = icon_path
+                
+                if os.path.exists(full_image_path):
+                    is_image = True
+                    # Cargar y escalar la imagen (más grande para que se vea mejor)
+                    pixmap = QPixmap(full_image_path)
+                    # Escalar a 48x48 (más grande que antes)
+                    scaled_pixmap = pixmap.scaled(
+                        48, 48,
+                        Qt.KeepAspectRatio,
+                        Qt.SmoothTransformation
+                    )
+                    icon_label.setPixmap(scaled_pixmap)
+                    icon_label.setStyleSheet(
+                        "background-color: transparent; "
+                        "border: none; "
+                        "padding: 0px; "
+                        "margin: 0px;"
+                    )
+                    icon_label.setFixedSize(scaled_pixmap.width(), scaled_pixmap.height())
+            
+            # Si no es imagen o no existe, usar emoji con contenedor circular
+            if not is_image:
+                icon_container = QWidget(row)
+                icon_container.setFixedSize(40, 40)
+                icon_container.setStyleSheet(
+                    f"background-color: {BORDER_COLOR}; "
+                    f"border-radius: 8px;"
+                )
+                icon_layout = QVBoxLayout(icon_container)
+                icon_layout.setContentsMargins(0, 0, 0, 0)
+                icon_layout.setAlignment(Qt.AlignCenter)
+                
+                emoji_label = QLabel(icon_emoji, icon_container)
+                emoji_label.setAlignment(Qt.AlignCenter)
+                emoji_label.setStyleSheet(
+                    f"color: {icon_color}; "
+                    f"font-size: 20px; "
+                    f"background-color: transparent; "
+                    f"border: none; "
+                    f"padding: 0px; "
+                    f"margin: 0px;"
+                )
+                icon_layout.addWidget(emoji_label)
+                row_layout.addWidget(icon_container)
+            else:
+                # Si es imagen, agregarla directamente sin contenedor
+                row_layout.addWidget(icon_label)
+            
+            # Label del ambiente - SIN ENCAPSULACIÓN, alineado a la izquierda
+            label_widget = QLabel(label, row)
+            label_widget.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+            label_widget.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            label_widget.setWordWrap(False)
+            label_widget.setTextFormat(Qt.PlainText)
+            label_widget.setOpenExternalLinks(False)
+            label_widget.setMinimumWidth(0)
+            label_widget.setMaximumWidth(16777215)
+            label_widget.setMinimumHeight(0)
+            font = label_widget.font()
+            font.setPointSize(16)
+            label_widget.setFont(font)
+            fm = QFontMetrics(font)
+            text_width = fm.horizontalAdvance(label)
+            label_widget.setMinimumWidth(text_width)
+            label_widget.setStyleSheet(
+                f"color: {TEXT_GRAY_DARK}; "
+                f"font-size: 16px; "
+                f"font-weight: 400; "
+                f"background-color: transparent; "
+                f"border: none; "
+                f"padding: 0px; "
+                f"margin: 0px;"
+            )
+            row_layout.addWidget(label_widget)
+            row_layout.addStretch(1)  # Espacio flexible para empujar el valor a la derecha
+            
+            # Valor en azul primario - SIN ENCAPSULACIÓN, alineado a la derecha
+            value_widget = QLabel(value, row)
+            value_widget.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+            value_widget.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            value_widget.setWordWrap(False)
+            value_widget.setTextFormat(Qt.PlainText)
+            value_widget.setOpenExternalLinks(False)
+            value_widget.setMinimumWidth(0)
+            value_widget.setMaximumWidth(16777215)
+            value_widget.setMinimumHeight(0)
+            value_font = value_widget.font()
+            value_font.setPointSize(16)
+            value_font.setBold(True)
+            value_widget.setFont(value_font)
+            value_fm = QFontMetrics(value_font)
+            value_text_width = value_fm.horizontalAdvance(value)
+            value_widget.setMinimumWidth(value_text_width)
+            value_widget.setStyleSheet(
+                f"color: {PRIMARY_COLOR}; "
+                f"font-size: 16px; "
+                f"font-weight: 700; "
+                f"background-color: transparent; "
+                f"border: none; "
+                f"padding: 0px; "
+                f"margin: 0px;"
+            )
+            row_layout.addWidget(value_widget, 0, Qt.AlignRight)  # Alinear a la derecha
+            
+            env_layout.addWidget(row)
+        
+        layout.addWidget(env_container)
+
+    def _show_assigned_environment_stitch(self, parent, layout):
+        """Muestra la sección AMBIENTE ASIGNADO con diseño Stitch AI"""
+        PRIMARY_COLOR = "#136dec"
+        BG_LIGHT_HTML = "#f6f7f8"
+        TEXT_GRAY_DARK = "#111418"
+        TEXT_GRAY_LIGHT = "#617289"
+        BORDER_COLOR = "#f0f2f4"
+        ICON_PINK = "#ec4899"  # pink-500
+        ICON_PURPLE = "#a78bfa"  # purple-400
+        ICON_DARK_PURPLE = "#8b5cf6"  # purple-500
+        ICON_BLUE = "#60a5fa"  # blue-400
+        ICON_GREEN = "#10b981"  # green-500
+        
+        # Título de la sección
+        title_label = QLabel("AMBIENTE ASIGNADO", parent)
+        title_label.setStyleSheet(
+            f"color: {ICON_BLUE}; "
+            f"font-size: 18px; "
+            f"font-weight: 700; "
+            f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
+        )
+        title_label.setWordWrap(False)
+        layout.addWidget(title_label)
+        
+        # Detalles del ambiente con iconos de colores
+        details = [
+            ("📍", "AULA PRINCIPAL:", "Aula 101 - Laboratorio de Programación", ICON_PINK),
+            ("🔧", "EQUIPOS:", "25 computadoras, Proyector 4K, Pizarra digital", ICON_PURPLE),
+            ("👥", "CAPACIDAD:", "30 estudiantes", ICON_DARK_PURPLE),
+            ("🌐", "CONECTIVIDAD:", "WiFi de alta velocidad, Red cableada", ICON_BLUE),
+            ("📚", "RECURSOS:", "Software de desarrollo, Bibliotecas digitales", ICON_GREEN),
+        ]
+        
+        for icon_emoji, label, value, icon_color in details:
+            row = QWidget(parent)
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(0, 8, 0, 8)
+            row_layout.setSpacing(12)
+            
+            # Icono con color
+            icon_label = QLabel(icon_emoji, row)
+            icon_label.setStyleSheet(
+                f"color: {icon_color}; "
+                f"font-size: 20px;"
+            )
+            row_layout.addWidget(icon_label)
+            
+            # Label en azul claro
+            label_widget = QLabel(label, row)
+            label_widget.setStyleSheet(
+                f"color: {ICON_BLUE}; "
+                f"font-size: 14px; "
+                f"font-weight: 700;"
+            )
+            label_widget.setWordWrap(False)
+            row_layout.addWidget(label_widget)
+            
+            # Valor en azul claro
+            value_widget = QLabel(value, row)
+            value_widget.setStyleSheet(
+                f"color: {ICON_BLUE}; "
+                f"font-size: 14px; "
+                f"font-weight: 400;"
+            )
+            value_widget.setWordWrap(False)
+            row_layout.addWidget(value_widget)
             row_layout.addStretch(1)
-            block_layout.addWidget(row)
-        layout.addWidget(block)
+            
+            layout.addWidget(row)
+
+    def _show_instructor_calendar_stitch_new(self, parent, layout):
+        """Muestra la sección HORARIO DE CLASES con diseño exacto del HTML de Stitch AI"""
+        HEADER_DARK = "#2D3748"
+        TEXT_WHITE = "#ffffff"
+        TEXT_LIGHT_GRAY = "#d1d5db"
+        BORDER_GRAY = "#4b5563"  # gray-600
+        
+        # Contenedor con fondo oscuro (exacto del HTML)
+        schedule_container = QWidget(parent)
+        schedule_container.setStyleSheet(
+            f"background-color: {HEADER_DARK}; "
+            f"border-radius: 12px; "
+            f"padding: 32px;"  # Aumentado de 24px a 32px para más espacio
+        )
+        schedule_layout = QVBoxLayout(schedule_container)
+        schedule_layout.setContentsMargins(0, 0, 0, 0)
+        schedule_layout.setSpacing(24)
+        
+        # Header con título y borde inferior - SIN ENCAPSULACIÓN
+        title_label = QLabel("HORARIO DE CLASES", schedule_container)
+        title_label.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
+        title_label.setWordWrap(False)
+        title_label.setTextFormat(Qt.PlainText)
+        title_label.setOpenExternalLinks(False)
+        title_label.setMinimumWidth(0)
+        title_label.setMaximumWidth(16777215)
+        title_label.setMinimumHeight(0)
+        title_font = title_label.font()
+        title_font.setPointSize(20)
+        title_font.setBold(True)
+        title_label.setFont(title_font)
+        title_fm = QFontMetrics(title_font)
+        title_text_width = title_fm.horizontalAdvance("HORARIO DE CLASES")
+        title_label.setMinimumWidth(title_text_width)
+        title_label.setStyleSheet(
+            f"color: {TEXT_WHITE}; "
+            f"font-size: 20px; "
+            f"font-weight: 700; "
+            f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; "
+            f"border-bottom: 1px solid {BORDER_GRAY}; "
+            f"padding-bottom: 16px; "
+            f"margin-bottom: 24px; "
+            f"background-color: transparent; "
+            f"border-left: none; "
+            f"border-right: none; "
+            f"border-top: none; "
+            f"padding-left: 0px; "
+            f"padding-right: 0px; "
+            f"padding-top: 0px; "
+            f"margin-left: 0px; "
+            f"margin-right: 0px; "
+            f"margin-top: 0px;"
+        )
+        schedule_layout.addWidget(title_label)
+        
+        # Cargar programación real por instructor
+        personal_id = None
+        try:
+            if self._km.current_user:
+                personal_id = self._km.current_user.get('id')
+        except Exception:
+            pass
+        
+        schedule = []
+        day_order = ["LUNES","MARTES","MIERCOLES","JUEVES","VIERNES","SABADO","DOMINGO"]
+        if personal_id:
+            week = get_instructor_week_schedule(personal_id)
+            for d in day_order:
+                items = week.get(d, [])
+                if items:
+                    pretty = d.capitalize() if d != "MIERCOLES" else "Miércoles"
+                    mapped = []
+                    for it in items:
+                        t = f"{it['inicio']} - {it['fin']}" if it.get('inicio') and it.get('fin') else (it.get('inicio') or '')
+                        mapped.append((t, it.get('tipo') or 'Clase', it.get('ambiente') or '', it.get('ambiente_id')))
+                    schedule.append((pretty, mapped))
+        
+        # Si no hay datos, mostrar mensaje informativo (exacto del HTML)
+        if not schedule:
+            no_data_container = QWidget(schedule_container)
+            no_data_layout = QVBoxLayout(no_data_container)
+            no_data_layout.setContentsMargins(40, 32, 40, 32)  # Más espacio horizontal (40px) y vertical (32px)
+            no_data_layout.setSpacing(16)
+            no_data_layout.setAlignment(Qt.AlignCenter)
+            
+            # Icono de imagen (sin círculo de fondo)
+            icon_label = QLabel(no_data_container)
+            icon_label.setAlignment(Qt.AlignCenter)
+            
+            # Cargar imagen de horario
+            image_path = "images/horario.jpg"
+            if not os.path.isabs(image_path):
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                full_image_path = os.path.join(script_dir, image_path)
+            else:
+                full_image_path = image_path
+            
+            if os.path.exists(full_image_path):
+                pixmap = QPixmap(full_image_path)
+                # Escalar la imagen a un tamaño adecuado (64x64 para que se vea bien)
+                scaled_pixmap = pixmap.scaled(
+                    64, 64,
+                    Qt.KeepAspectRatio,
+                    Qt.SmoothTransformation
+                )
+                icon_label.setPixmap(scaled_pixmap)
+                icon_label.setStyleSheet(
+                    "background-color: transparent; "
+                    "border: none; "
+                    "padding: 0px; "
+                    "margin: 0px;"
+                )
+                icon_label.setFixedSize(scaled_pixmap.width(), scaled_pixmap.height())
+            else:
+                # Fallback si la imagen no existe
+                icon_label.setText("📅")
+                icon_label.setStyleSheet(
+                    f"color: {TEXT_LIGHT_GRAY}; "
+                    f"font-size: 36px; "
+                    f"background-color: transparent; "
+                    f"border: none; "
+                    f"padding: 0px; "
+                    f"margin: 0px;"
+                )
+            
+            no_data_layout.addWidget(icon_label, 0, Qt.AlignCenter)
+            
+            # Mensaje principal - SIN ENCAPSULACIÓN
+            no_data_msg = QLabel("No hay programación disponible", no_data_container)
+            no_data_msg.setAlignment(Qt.AlignCenter)
+            no_data_msg.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
+            no_data_msg.setWordWrap(False)
+            no_data_msg.setTextFormat(Qt.PlainText)
+            no_data_msg.setOpenExternalLinks(False)
+            no_data_msg.setMinimumWidth(0)
+            no_data_msg.setMaximumWidth(16777215)
+            no_data_msg.setMinimumHeight(0)
+            no_data_font = no_data_msg.font()
+            no_data_font.setPointSize(18)
+            no_data_font.setWeight(QFont.Weight.Medium)  # Medium weight (500)
+            no_data_msg.setFont(no_data_font)
+            no_data_fm = QFontMetrics(no_data_font)
+            no_data_text_width = no_data_fm.horizontalAdvance("No hay programación disponible")
+            no_data_msg.setMinimumWidth(no_data_text_width)
+            no_data_msg.setStyleSheet(
+                f"color: {TEXT_LIGHT_GRAY}; "
+                f"font-size: 18px; "
+                f"font-weight: 500; "
+                f"background-color: transparent; "
+                f"border: none; "
+                f"padding: 0px; "
+                f"margin: 0px;"
+            )
+            no_data_layout.addWidget(no_data_msg)
+            
+            schedule_layout.addWidget(no_data_container)
+            layout.addWidget(schedule_container)
+            return
+        
+        # Si hay programación, guardar datos
+        self._schedule_data = schedule
+        
+        # Aquí puedes agregar lógica para mostrar las clases programadas
+        layout.addWidget(schedule_container)
+
+    def _show_instructor_calendar_stitch(self, parent, layout):
+        """Muestra la sección HORARIO DE CLASES con diseño Stitch AI"""
+        SCHEDULE_DARK = "#1f2937"  # dark-800 similar al header
+        TEXT_WHITE = "#ffffff"
+        TEXT_LIGHT_GRAY = "#d1d5db"  # gray-300
+        
+        # Contenedor con fondo oscuro
+        schedule_container = QWidget(parent)
+        schedule_container.setStyleSheet(
+            f"background-color: {SCHEDULE_DARK}; "
+            f"border-radius: 12px; "
+            f"padding: 24px;"
+        )
+        schedule_layout = QVBoxLayout(schedule_container)
+        schedule_layout.setContentsMargins(0, 0, 0, 0)
+        schedule_layout.setSpacing(16)
+        
+        # Header con icono y título
+        header_row = QWidget(schedule_container)
+        header_layout = QHBoxLayout(header_row)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(12)
+        
+        # Icono de calendario
+        calendar_icon = QLabel("📅", header_row)
+        calendar_icon.setStyleSheet(
+            f"color: {TEXT_WHITE}; "
+            f"font-size: 20px;"
+        )
+        header_layout.addWidget(calendar_icon)
+        
+        # Título en blanco
+        title_label = QLabel("HORARIO DE CLASES", header_row)
+        title_label.setStyleSheet(
+            f"color: {TEXT_WHITE}; "
+            f"font-size: 18px; "
+            f"font-weight: 700; "
+            f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
+        )
+        title_label.setWordWrap(False)
+        header_layout.addWidget(title_label)
+        header_layout.addStretch(1)
+        
+        schedule_layout.addWidget(header_row)
+        
+        # Cargar programación real por instructor
+        personal_id = None
+        try:
+            if self._km.current_user:
+                personal_id = self._km.current_user.get('id')
+        except Exception:
+            pass
+        
+        schedule = []
+        day_order = ["LUNES","MARTES","MIERCOLES","JUEVES","VIERNES","SABADO","DOMINGO"]
+        if personal_id:
+            week = get_instructor_week_schedule(personal_id)
+            for d in day_order:
+                items = week.get(d, [])
+                if items:
+                    pretty = d.capitalize() if d != "MIERCOLES" else "Miércoles"
+                    mapped = []
+                    for it in items:
+                        t = f"{it['inicio']} - {it['fin']}" if it.get('inicio') and it.get('fin') else (it.get('inicio') or '')
+                        mapped.append((t, it.get('tipo') or 'Clase', it.get('ambiente') or '', it.get('ambiente_id')))
+                    schedule.append((pretty, mapped))
+        
+        # Si no hay datos, mostrar mensaje informativo
+        if not schedule:
+            no_data_container = QWidget(schedule_container)
+            no_data_layout = QVBoxLayout(no_data_container)
+            no_data_layout.setContentsMargins(0, 0, 0, 0)
+            no_data_layout.setSpacing(8)
+            
+            # Icono de usuario
+            user_icon = QLabel("👤", no_data_container)
+            user_icon.setStyleSheet(
+                f"color: {TEXT_LIGHT_GRAY}; "
+                f"font-size: 24px;"
+            )
+            no_data_layout.addWidget(user_icon)
+            
+            # Mensaje principal
+            no_data_msg = QLabel("No hay programación disponible", no_data_container)
+            no_data_msg.setStyleSheet(
+                f"color: {TEXT_LIGHT_GRAY}; "
+                f"font-size: 14px; "
+                f"font-weight: 400;"
+            )
+            no_data_msg.setWordWrap(False)
+            no_data_layout.addWidget(no_data_msg)
+            
+            # Mensaje secundario
+            contact_msg = QLabel("Contacte al administrador para configurar su horario", no_data_container)
+            contact_msg.setStyleSheet(
+                f"color: {TEXT_LIGHT_GRAY}; "
+                f"font-size: 14px; "
+                f"font-weight: 400;"
+            )
+            contact_msg.setWordWrap(False)
+            no_data_layout.addWidget(contact_msg)
+            
+            schedule_layout.addWidget(no_data_container)
+            layout.addWidget(schedule_container)
+            return
+        
+        # Si hay programación, mostrar los días con clases
+        self._schedule_data = schedule
+        
+        # Aquí puedes agregar lógica para mostrar las clases programadas
+        # Por ahora, simplemente agregamos el contenedor
+        layout.addWidget(schedule_container)
 
     def _show_instructor_calendar(self, parent, layout):
         # Encabezado mejorado
@@ -327,12 +1017,8 @@ class InstructorInterface:
             self._day_layout.addWidget(class_card)
 
     def _create_futuristic_footer(self, parent, window, layout):
-        footer = styles.create_main_frame(parent)
-        footer_layout = QHBoxLayout(footer)
-        logout_btn = styles.create_danger_button(footer, "🚪 CERRAR SESIÓN", window.close)
-        footer_layout.addStretch(1)
-        footer_layout.addWidget(logout_btn)
-        layout.addWidget(footer)
+        # Footer con botón de cerrar sesión eliminado por solicitud; se usa la X de la ventana
+        return
 
     def _get_keys_for_environment(self, environment_id: int, room_name: str) -> List[Dict[str, Any]]:
         """Busca llaves para un ambiente de manera más flexible"""

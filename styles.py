@@ -12,7 +12,8 @@ from PySide6.QtWidgets import (
     QHBoxLayout, QGraphicsDropShadowEffect, QSizePolicy, QScrollArea, QFrame
 )
 from PySide6.QtCore import Qt, QSize, QObject, QEvent, QTimer
-from PySide6.QtGui import QFont, QColor
+from PySide6.QtGui import QFont, QColor, QPixmap, QPainter, QBrush, QPainterPath
+import os
 
 from config import *
 
@@ -20,8 +21,8 @@ def setup_futuristic_styles(app):
     """Configura estilos globales con hoja de estilos Qt."""
     app.setStyleSheet(f"""
         QWidget {{
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                        stop:0 {BG_DARK}, stop:1 {BG_MEDIUM});
+            /* Fondo sólido para eliminar las bandas horizontales ("renglones") */
+            background-color: {BG_DARK};
             color: {TEXT_WHITE};
             font-family: 'Segoe UI', Arial, sans-serif;
         }}
@@ -283,8 +284,9 @@ def create_card(parent) -> QWidget:
     card = QWidget(parent)
     card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
     try:
+        # Quitar borde para evitar "renglones" o múltiples marcos visibles
         card.setStyleSheet(
-            f"background-color: {BG_LIGHT}; border: 1px solid {ACCENT_BLUE}; border-radius: 10px;"
+            f"background-color: {BG_LIGHT}; border: 0; border-radius: 10px;"
         )
     except Exception:
         pass
@@ -444,3 +446,245 @@ def center_window(window):
         x = (screen.width() - window.width()) // 2
         y = (screen.height() - window.height()) // 2
         window.move(x, y)
+
+def create_role_card(parent, icon_text: str, title: str, description: str, on_click, icon_size: int = 64):
+    """Crea una tarjeta de rol con diseño exacto del HTML proporcionado.
+    
+    Args:
+        parent: Widget padre
+        icon_text: Texto del ícono (emoji/símbolo Unicode) o ruta de imagen (ej: "images/admin.png")
+        title: Título del rol
+        description: Descripción del rol
+        on_click: Función a ejecutar al hacer clic
+        icon_size: Tamaño del ícono en píxeles
+    """
+    # Colores exactos del HTML
+    PRIMARY_COLOR = "#136dec"
+    BG_LIGHT_HTML = "#f6f7f8"
+    CARD_BG = "#ffffff"  # Blanco para las tarjetas
+    BORDER_COLOR = "#e5e7eb"  # gray-200
+    BORDER_COLOR_DARK = "#1f2937"  # gray-800
+    TEXT_GRAY_DARK = "#374151"  # gray-900
+    TEXT_GRAY_LIGHT = "#6b7280"  # gray-500
+    TEXT_GRAY_DARK_MODE = "#f3f4f6"  # gray-100
+    TEXT_GRAY_LIGHT_MODE = "#9ca3af"  # gray-400
+    
+    container = QWidget(parent)
+    container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+    container.setMinimumHeight(180)
+    container.setMinimumWidth(0)  # Sin ancho mínimo para que se expanda
+    container.setMaximumWidth(16777215)  # Ancho máximo muy grande (Qt default)
+    container.setCursor(Qt.PointingHandCursor)
+    
+    # Estilos base y hover (exactos del HTML)
+    # Sin padding que cree efecto de cuadro - solo padding mínimo necesario
+    base_style = (
+        f"background-color: {CARD_BG}; "
+        f"border: 1px solid {BORDER_COLOR}; "
+        f"border-radius: 12px; "
+        f"padding: 0px;"
+    )
+    hover_style = (
+        f"background-color: {CARD_BG}; "
+        f"border: 1px solid {PRIMARY_COLOR}; "
+        f"border-radius: 12px; "
+        f"padding: 0px;"
+    )
+    container.setStyleSheet(base_style)
+    
+    # Layout principal vertical - Sin márgenes que creen efecto de cuadro
+    main_layout = QVBoxLayout(container)
+    main_layout.setContentsMargins(24, 24, 24, 24)  # Padding dentro del layout, no en el estilo
+    main_layout.setSpacing(12)
+    main_layout.setAlignment(Qt.AlignCenter)
+    
+    # Verificar si es una ruta de imagen (termina en extensión de imagen)
+    is_image = False
+    image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.svg']
+    if isinstance(icon_text, str):
+        icon_text_lower = icon_text.lower()
+        is_image = any(icon_text_lower.endswith(ext) for ext in image_extensions)
+    
+    if is_image:
+        # Para imágenes: mostrar solo la imagen sin círculo de fondo
+        icon_label = QLabel(container)
+        icon_label.setAlignment(Qt.AlignCenter)
+        
+        # Es una imagen: cargar y mostrar la imagen
+        image_path = icon_text
+        # Si la ruta es relativa, construir la ruta absoluta desde el directorio del script
+        if not os.path.isabs(image_path):
+            # Obtener el directorio del archivo styles.py
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            image_path = os.path.join(script_dir, image_path)
+        
+        if os.path.exists(image_path):
+            pixmap = QPixmap(image_path)
+            # Escalar la imagen más grande (150% del tamaño del icono para que se vea mejor)
+            image_size = int(icon_size * 1.5)  # Hacer la imagen 50% más grande
+            scaled_pixmap = pixmap.scaled(
+                image_size,
+                image_size,
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation
+            )
+            
+            icon_label.setPixmap(scaled_pixmap)
+            # Hacer que el label sea transparente y sin bordes
+            icon_label.setStyleSheet(
+                "background-color: transparent; "
+                "border: none; "
+                "padding: 0px; "
+                "margin: 0px;"
+            )
+            # Ajustar el tamaño del label al tamaño de la imagen escalada
+            icon_label.setFixedSize(scaled_pixmap.width(), scaled_pixmap.height())
+            icon_label.setScaledContents(False)  # No escalar automáticamente, usar el pixmap escalado
+        else:
+            # Si la imagen no existe, usar un emoji por defecto
+            icon_label.setText("❓")
+            icon_label.setStyleSheet(
+                f"color: {PRIMARY_COLOR}; "
+                f"font-size: {icon_size - 16}px; "
+                f"font-weight: 400;"
+            )
+        
+        # Agregar la imagen directamente al layout principal sin contenedor circular
+        main_layout.addWidget(icon_label, 0, Qt.AlignCenter)
+    else:
+        # Es texto emoji: usar el código original con círculo de fondo
+        # Contenedor del ícono con fondo circular (exacto del HTML: bg-primary/10)
+        icon_container = QWidget(container)
+        icon_container.setFixedSize(icon_size, icon_size)
+        # bg-primary/10 = rgba(19, 109, 236, 0.1)
+        icon_container.setStyleSheet(
+            f"background-color: rgba(19, 109, 236, 0.1); "
+            f"border-radius: {icon_size // 2}px;"
+        )
+        icon_layout = QVBoxLayout(icon_container)
+        icon_layout.setContentsMargins(0, 0, 0, 0)
+        icon_layout.setAlignment(Qt.AlignCenter)
+        
+        icon_label = QLabel(icon_text, icon_container)
+        icon_label.setAlignment(Qt.AlignCenter)
+        icon_label.setStyleSheet(
+            f"color: {PRIMARY_COLOR}; "
+            f"font-size: {icon_size - 16}px; "
+            f"font-weight: 400;"
+        )
+        
+        icon_layout.addWidget(icon_label)
+        main_layout.addWidget(icon_container, 0, Qt.AlignCenter)
+    
+    # Contenedor de texto - Sin restricciones para que el texto fluya naturalmente
+    text_layout = QVBoxLayout()
+    text_layout.setSpacing(4)
+    text_layout.setAlignment(Qt.AlignCenter)
+    text_layout.setContentsMargins(0, 0, 0, 0)
+    
+    # Título (exacto del HTML: text-gray-900 dark:text-gray-100) - Sin encapsulado ni truncado
+    title_label = QLabel(title, container)
+    title_label.setAlignment(Qt.AlignCenter)
+    title_label.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
+    title_label.setWordWrap(False)  # Sin encapsulado, texto fluye naturalmente
+    # Desactivar cualquier elisión o truncamiento de texto
+    title_label.setTextFormat(Qt.PlainText)
+    title_label.setOpenExternalLinks(False)
+    # Sin restricciones de ancho - permitir que el texto determine el tamaño
+    title_label.setMinimumWidth(0)
+    title_label.setMaximumWidth(16777215)  # Sin límite de ancho máximo
+    title_label.setMinimumHeight(0)
+    # Calcular el ancho necesario para el texto completo
+    from PySide6.QtGui import QFontMetrics
+    font = title_label.font()
+    font.setPointSize(16)
+    font.setBold(True)
+    title_label.setFont(font)
+    fm = QFontMetrics(font)
+    text_width = fm.horizontalAdvance(title)
+    title_label.setMinimumWidth(text_width)  # Asegurar ancho mínimo para el texto completo
+    # Asegurar que el texto se muestre completo - Sin fondo ni bordes que parezcan cuadro
+    title_label.setStyleSheet(
+        f"color: {TEXT_GRAY_DARK}; "
+        f"font-size: 16px; "
+        f"font-weight: 700; "
+        f"background-color: transparent; "
+        f"border: none; "
+        f"padding: 0px; "
+        f"margin: 0px;"
+    )
+    text_layout.addWidget(title_label, 0, Qt.AlignCenter)
+    
+    # Descripción (exacto del HTML: text-gray-500 dark:text-gray-400) - Sin encapsulado ni truncado
+    desc_label = QLabel(description, container)
+    desc_label.setAlignment(Qt.AlignCenter)
+    desc_label.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
+    desc_label.setWordWrap(False)  # Sin encapsulado, texto fluye naturalmente
+    # Desactivar cualquier elisión o truncamiento de texto
+    desc_label.setTextFormat(Qt.PlainText)
+    desc_label.setOpenExternalLinks(False)
+    # Sin restricciones de ancho - permitir que el texto determine el tamaño
+    desc_label.setMinimumWidth(0)
+    desc_label.setMaximumWidth(16777215)  # Sin límite de ancho máximo
+    desc_label.setMinimumHeight(0)
+    # Calcular el ancho necesario para el texto completo
+    desc_font = desc_label.font()
+    desc_font.setPointSize(14)
+    desc_label.setFont(desc_font)
+    desc_fm = QFontMetrics(desc_font)
+    desc_text_width = desc_fm.horizontalAdvance(description)
+    desc_label.setMinimumWidth(desc_text_width)  # Asegurar ancho mínimo para el texto completo
+    # Asegurar que el texto se muestre completo - Sin fondo ni bordes que parezcan cuadro
+    desc_label.setStyleSheet(
+        f"color: {TEXT_GRAY_LIGHT}; "
+        f"font-size: 14px; "
+        f"font-weight: 400; "
+        f"background-color: transparent; "
+        f"border: none; "
+        f"padding: 0px; "
+        f"margin: 0px;"
+    )
+    text_layout.addWidget(desc_label, 0, Qt.AlignCenter)
+    
+    main_layout.addLayout(text_layout)
+    
+    # Efectos de hover y click (exacto del HTML)
+    class CardHoverEffect(QObject):
+        def __init__(self, widget):
+            super().__init__(widget)
+            self.widget = widget
+            self._shadow_effect = None
+            
+        def eventFilter(self, obj, ev):
+            if ev.type() == QEvent.Enter:
+                # Cambiar estilo y agregar sombra (hover:shadow-lg hover:-translate-y-1)
+                self.widget.setStyleSheet(hover_style)
+                try:
+                    shadow = QGraphicsDropShadowEffect(self.widget)
+                    shadow.setBlurRadius(20)
+                    shadow.setColor(QColor(0, 0, 0, 40))  # Sombra negra con opacidad
+                    shadow.setOffset(0, 4)
+                    self.widget.setGraphicsEffect(shadow)
+                    self._shadow_effect = shadow
+                except Exception:
+                    pass
+            elif ev.type() == QEvent.Leave:
+                # Restaurar estilo y quitar sombra
+                self.widget.setStyleSheet(base_style)
+                try:
+                    self.widget.setGraphicsEffect(None)
+                    self._shadow_effect = None
+                except Exception:
+                    pass
+            elif ev.type() == QEvent.MouseButtonRelease:
+                try:
+                    on_click()
+                except Exception:
+                    pass
+            return False
+    
+    hover_effect = CardHoverEffect(container)
+    container.installEventFilter(hover_effect)
+    container._hover_effect = hover_effect  # Evitar GC
+    
+    return container
