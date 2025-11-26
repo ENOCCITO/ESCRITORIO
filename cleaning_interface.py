@@ -8,6 +8,7 @@ cleaning_interface.py
 import styles
 from config import *
 from utils import *
+from db_utils import get_available_keys, get_environments
 from PySide6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
@@ -474,27 +475,274 @@ class CleaningInterface:
             traceback.print_exc()
 
     def _open_environment_selector(self):
-        """Abre el selector de ambientes"""
         try:
-            from utils import get_available_environments
-            environments = get_available_environments()
+            # Colores del diseño Stitch
+            PRIMARY_COLOR = "#136dec"
+            BG_LIGHT_HTML = "#f6f7f8"
+            TEXT_GRAY_DARK = "#111418"
+            TEXT_GRAY_LIGHT = "#617289"
+            BORDER_COLOR = "#f0f2f4"
+            CARD_BG = "#ffffff"
             
-            if not environments:
-                QMessageBox.information(
-                    self.parent,
-                    "Sin ambientes",
-                    "No hay ambientes disponibles en la base de datos."
-                )
-                return
+            # Crear modal
+            dlg = QDialog(self.parent)
+            dlg.setModal(True)
+            dlg.setWindowTitle("AMBIENTES DISPONIBLES")
+            dlg.resize(900, 620)
+            dlg.setStyleSheet(f"background-color: {BG_LIGHT_HTML};")
             
-            # Mostrar diálogo de selección
-            QMessageBox.information(
-                self.parent,
-                "Seleccionar Ambiente",
-                f"Se encontraron {len(environments)} ambientes disponibles.\n\n"
-                "Funcionalidad de selección en desarrollo."
+            # Layout principal
+            root_layout = QVBoxLayout(dlg)
+            root_layout.setContentsMargins(0, 0, 0, 0)
+            root_layout.setSpacing(0)
+            
+            # Header del modal
+            header = QWidget(dlg)
+            header.setFixedHeight(60)
+            header.setStyleSheet(
+                f"background-color: {CARD_BG}; "
+                f"border-bottom: 1px solid {BORDER_COLOR};"
             )
+            header_layout = QHBoxLayout(header)
+            header_layout.setContentsMargins(24, 16, 24, 16)
+            header_layout.setSpacing(16)
+            
+            # Título con icono
+            title_container = QWidget(header)
+            title_layout = QHBoxLayout(title_container)
+            title_layout.setContentsMargins(0, 0, 0, 0)
+            title_layout.setSpacing(12)
+            
+            icon_label = QLabel("🏢", header)
+            icon_label.setStyleSheet("font-size: 24px; background-color: transparent;")
+            title_layout.addWidget(icon_label)
+            
+            title_label = QLabel("AMBIENTES DISPONIBLES", header)
+            title_label.setStyleSheet(
+                f"color: {TEXT_GRAY_DARK}; "
+                f"font-size: 18px; "
+                f"font-weight: 700; "
+                f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
+            )
+            title_layout.addWidget(title_label)
+            
+            header_layout.addWidget(title_container)
+            header_layout.addStretch()
+            
+            # Botón cerrar (X)
+            close_btn = QPushButton("✕", header)
+            close_btn.setFixedSize(32, 32)
+            close_btn.setCursor(Qt.PointingHandCursor)
+            close_btn.setStyleSheet(
+                f"QPushButton {{"
+                f"background-color: {BG_LIGHT_HTML}; "
+                f"color: {TEXT_GRAY_LIGHT}; "
+                f"border: none; "
+                f"border-radius: 8px; "
+                f"font-size: 18px; "
+                f"font-weight: 500;"
+                f"}}"
+                f"QPushButton:hover {{"
+                f"background-color: #E5E7EB; "
+                f"color: {TEXT_GRAY_DARK};"
+                f"}}"
+            )
+            close_btn.clicked.connect(dlg.close)
+            header_layout.addWidget(close_btn)
+            
+            root_layout.addWidget(header)
+            
+            # Área de contenido scrollable
+            scroll_area = QScrollArea(dlg)
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setFrameShape(QFrame.NoFrame)
+            scroll_area.setStyleSheet("border: none; background-color: transparent;")
+            
+            content_widget = QWidget()
+            content_widget.setStyleSheet(f"background-color: {BG_LIGHT_HTML};")
+            content_layout = QVBoxLayout(content_widget)
+            content_layout.setContentsMargins(24, 24, 24, 24)
+            content_layout.setSpacing(24)
+            
+            # Subtítulo/Instrucción
+            subtitle_label = QLabel("Seleccione un ambiente para gestionar sus llaves disponibles", content_widget)
+            subtitle_label.setAlignment(Qt.AlignHCenter)
+            subtitle_label.setWordWrap(True)
+            subtitle_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+            subtitle_label.setStyleSheet(
+                f"color: {TEXT_GRAY_LIGHT}; "
+                f"font-size: 14px; "
+                f"font-weight: 400; "
+                f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
+            )
+            content_layout.addWidget(subtitle_label)
+            
+            # Construir lista de ambientes con llaves disponibles
+            try:
+                from db_utils import db_connect, get_environments
+                env_ids_with_keys = {}
+                envs_list = get_environments()
+                envs = {e['id']: e for e in envs_list} if isinstance(envs_list, list) else {}
+                with db_connect() as cnx:
+                    cur = cnx.cursor(dictionary=True)
+                    cur.execute("SELECT id, codigo_llave, descripcion, ambiente_id, estado, angulo_grados FROM llaves WHERE activo = 1 AND estado IN ('DISPONIBLE','ASIGNADA')")
+                    for row in cur.fetchall():
+                        a_id = row.get('ambiente_id')
+                        if a_id:
+                            env_ids_with_keys.setdefault(a_id, []).append(row)
+            except Exception:
+                from db_utils import get_environments
+                keys = get_available_keys()
+                envs = {e['id']: e for e in get_environments()} if isinstance(get_environments(), list) else {}
+                env_ids_with_keys = {}
+                for k in keys:
+                    a_id = k.get('ambiente_id')
+                    if a_id:
+                        env_ids_with_keys.setdefault(a_id, []).append(k)
+            
+            # Contenedor de lista de ambientes
+            environments_container = QWidget(content_widget)
+            environments_layout = QVBoxLayout(environments_container)
+            environments_layout.setContentsMargins(0, 0, 0, 0)
+            environments_layout.setSpacing(12)
+            
+            if not env_ids_with_keys:
+                # Estado vacío
+                empty_card = QWidget(content_widget)
+                empty_card.setStyleSheet(
+                    f"background-color: {CARD_BG}; "
+                    f"border: 1px solid {BORDER_COLOR}; "
+                    f"border-radius: 12px;"
+                )
+                empty_layout = QVBoxLayout(empty_card)
+                empty_layout.setContentsMargins(40, 40, 40, 40)
+                empty_layout.setSpacing(16)
+                
+                empty_icon = QLabel("🔑", empty_card)
+                empty_icon.setAlignment(Qt.AlignHCenter)
+                empty_icon.setStyleSheet("font-size: 48px; background-color: transparent;")
+                empty_layout.addWidget(empty_icon)
+                
+                empty_text = QLabel("No hay llaves disponibles en este momento.", empty_card)
+                empty_text.setAlignment(Qt.AlignHCenter)
+                empty_text.setWordWrap(True)
+                empty_text.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+                empty_text.setStyleSheet(
+                    f"color: {TEXT_GRAY_LIGHT}; "
+                    f"font-size: 16px; "
+                    f"font-weight: 400; "
+                    f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
+                )
+                empty_layout.addWidget(empty_text)
+                
+                environments_layout.addWidget(empty_card)
+            else:
+                # Lista de ambientes
+                for env_id, klist in env_ids_with_keys.items():
+                    info = envs.get(env_id, {})
+                    name = info.get('nombre', f"Ambiente {env_id}")
+                    
+                    # Tarjeta de ambiente
+                    env_card = QWidget(environments_container)
+                    env_card.setStyleSheet(
+                        f"background-color: {CARD_BG}; "
+                        f"border: 1px solid {BORDER_COLOR}; "
+                        f"border-radius: 12px;"
+                    )
+                    env_card.setMinimumHeight(72)
+                    
+                    card_layout = QHBoxLayout(env_card)
+                    card_layout.setContentsMargins(20, 20, 20, 20)
+                    card_layout.setSpacing(16)
+                    
+                    # Icono de edificio
+                    icon_container = QWidget(env_card)
+                    icon_container.setFixedSize(56, 56)
+                    icon_container.setStyleSheet(
+                        f"background-color: #E3F2FD; "  # Azul muy claro (10% del primario)
+                        f"border-radius: 8px;"
+                    )
+                    icon_layout = QVBoxLayout(icon_container)
+                    icon_layout.setContentsMargins(0, 0, 0, 0)
+                    
+                    env_icon = QLabel("🏢", icon_container)
+                    env_icon.setAlignment(Qt.AlignCenter)
+                    env_icon.setStyleSheet(
+                        f"color: {PRIMARY_COLOR}; "
+                        f"font-size: 28px; "
+                        f"background-color: transparent;"
+                    )
+                    icon_layout.addWidget(env_icon)
+                    
+                    card_layout.addWidget(icon_container)
+                    
+                    # Información del ambiente - sin contenedor intermedio para que el texto fluya libremente
+                    info_layout = QVBoxLayout()
+                    info_layout.setContentsMargins(0, 0, 0, 0)
+                    info_layout.setSpacing(4)
+                    
+                    env_name = QLabel(name, env_card)
+                    env_name.setWordWrap(True)
+                    env_name.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+                    env_name.setStyleSheet(
+                        f"color: {TEXT_GRAY_DARK}; "
+                        f"font-size: 16px; "
+                        f"font-weight: 700; "
+                        f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
+                    )
+                    info_layout.addWidget(env_name)
+                    
+                    env_detail = QLabel(f"{len(klist)} llaves disponibles o asignadas sin reclamar", env_card)
+                    env_detail.setWordWrap(True)
+                    env_detail.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+                    env_detail.setStyleSheet(
+                        f"color: {TEXT_GRAY_LIGHT}; "
+                        f"font-size: 13px; "
+                        f"font-weight: 400; "
+                        f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
+                    )
+                    info_layout.addWidget(env_detail)
+                    
+                    # Agregar el layout directamente al card_layout sin widget intermedio
+                    card_layout.addLayout(info_layout, 1)
+                    
+                    # Botón "Seleccionar" (para Aseo)
+                    select_btn = QPushButton("Seleccionar", env_card)
+                    select_btn.setMinimumHeight(40)
+                    select_btn.setMinimumWidth(100)
+                    select_btn.setCursor(Qt.PointingHandCursor)
+                    select_btn.setStyleSheet(
+                        f"QPushButton {{"
+                        f"background-color: {PRIMARY_COLOR}; "
+                        f"color: white; "
+                        f"border: none; "
+                        f"border-radius: 8px; "
+                        f"padding: 10px 20px; "
+                        f"font-size: 14px; "
+                        f"font-weight: 500; "
+                        f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
+                        f"}}"
+                        f"QPushButton:hover {{"
+                        f"background-color: #0E5AA7; "
+                        f"}}"
+                    )
+                    select_btn.clicked.connect(lambda checked, eid=env_id, n=name: self._select_environment(eid, n))
+                    card_layout.addWidget(select_btn)
+                    
+                    environments_layout.addWidget(env_card)
+            
+            content_layout.addWidget(environments_container)
+            content_layout.addStretch()
+            
+            scroll_area.setWidget(content_widget)
+            root_layout.addWidget(scroll_area, 1)
+            
+            # Centrar y mostrar
+            styles.center_window(dlg)
+            dlg.show()
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             QMessageBox.critical(self.parent, "Error", f"Error abriendo selector de ambientes:\n{e}")
 
     def _get_available_environments(self):

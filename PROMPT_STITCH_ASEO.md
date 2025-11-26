@@ -97,3 +97,12 @@ Genera todo el HTML completo (incluyendo `<head>` con fuentes, Tailwind, estilos
 
 
 
+
+
+
+
+
+
+
+
+

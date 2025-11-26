@@ -342,66 +342,6 @@ class App(QWidget):
         main_layout.addWidget(cards_container)
         root_layout.addWidget(main_section, 1)
 
-        # Estado y acciones (mantenido del sistema original, pero con fondo claro)
-        status_block = QWidget(self)
-        status_block.setStyleSheet(f"background-color: {BG_LIGHT_HTML};")
-        status_layout = QVBoxLayout(status_block)
-        status_layout.setContentsMargins(40, 20, 40, 20)
-        status_layout.setSpacing(12)
-        
-        self.status_label = QLabel("🟢 Sistema listo y operativo", status_block)
-        self.status_label.setAlignment(Qt.AlignHCenter)
-        self.status_label.setStyleSheet(
-            f"color: {TEXT_GRAY_DARK}; "
-            f"font-size: 14px; "
-            f"font-weight: 600;"
-        )
-        status_layout.addWidget(self.status_label)
-
-        info_label = QLabel("Sistema de Control de Acceso Biométrico - CEFA", status_block)
-        info_label.setAlignment(Qt.AlignHCenter)
-        info_label.setStyleSheet(
-            f"color: {TEXT_GRAY_LIGHT}; "
-            f"font-size: 12px;"
-        )
-        status_layout.addWidget(info_label)
-
-        actions = QWidget(status_block)
-        actions_layout = QHBoxLayout(actions)
-        actions_layout.setSpacing(10)
-        actions_layout.setAlignment(Qt.AlignCenter)
-        
-        reload_btn = QPushButton("🔄 Recargar candidatos", actions)
-        reload_btn.setCursor(Qt.PointingHandCursor)
-        reload_btn.clicked.connect(self._manual_reload_candidates)
-        reload_btn.setStyleSheet(
-            f"background-color: transparent; "
-            f"color: {PRIMARY_COLOR}; "
-            f"border: 1px solid {BORDER_COLOR}; "
-            f"border-radius: 8px; "
-            f"padding: 8px 16px; "
-            f"font-size: 12px;"
-        )
-        
-        db_btn = QPushButton("⚙️ Configurar BD", actions)
-        db_btn.setCursor(Qt.PointingHandCursor)
-        db_btn.clicked.connect(self._show_database_config)
-        db_btn.setStyleSheet(
-            f"background-color: {PRIMARY_COLOR}; "
-            f"color: white; "
-            f"border: none; "
-            f"border-radius: 8px; "
-            f"padding: 8px 16px; "
-            f"font-size: 12px; "
-            f"font-weight: 600;"
-        )
-        
-        actions_layout.addWidget(reload_btn)
-        actions_layout.addWidget(db_btn)
-        status_layout.addWidget(actions)
-
-        root_layout.addWidget(status_block)
-
         # Variables para el lector biométrico
         self.var_fp_port = Var(FINGERPRINT_PORT_DEFAULT)
         self.var_fp_baud = Var(FINGERPRINT_BAUD_DEFAULT)
