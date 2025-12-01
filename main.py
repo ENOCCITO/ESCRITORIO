@@ -21,9 +21,9 @@ from PySide6.QtCore import Qt, QTimer, QObject, Signal
 from PySide6.QtGui import QPainter, QPen, QColor, QPixmap
 
 # Importar módulos separados
-import styles
-from config import *
-from utils import (
+from src.utils import styles
+from src.config.config import *
+from src.utils.utils import (
     _import_mysql, _import_pyfingerprint, _import_serial,
     db_connect, load_candidates_from_db, query_latest_environment,
     send_home, open_key_angle, create_sample_candidates,
@@ -32,16 +32,16 @@ from utils import (
     log_file, init_log_file, log_system_info
 )
 # Importaciones de interfaces se harán perezosas (lazy) para evitar dependencias mientras migramos
-# from admin_interface import AdminInterface
-# from instructor_interface import InstructorInterface
-# from security_interface import SecurityInterface
-# from cleaning_interface import CleaningInterface
-# from administrative_interface import AdministrativeInterface
-# from schedule_interface import ScheduleInterface
-from alert_system import alert_system
-from desktop_alerts import desktop_alert_system
-from role_validator import role_validator
-# from fingerprint_registration_interface import show_fingerprint_registration_interface
+# from src.interfaces.admin_interface import AdminInterface
+# from src.interfaces.instructor_interface import InstructorInterface
+# from src.interfaces.security_interface import SecurityInterface
+# from src.interfaces.cleaning_interface import CleaningInterface
+# from src.interfaces.administrative_interface import AdministrativeInterface
+# from src.interfaces.schedule_interface import ScheduleInterface
+from src.core.alert_system import alert_system
+from src.core.desktop_alerts import desktop_alert_system
+from src.core.role_validator import role_validator
+# from src.interfaces.fingerprint_registration_interface import show_fingerprint_registration_interface
 
 
 class Var:
@@ -133,13 +133,7 @@ class App(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("🔐 SISTEMA DE DISPENSACIÓN BIOMÉTRICA - CEFA")
-        try:
-            w, h = [int(x) for x in MAIN_WINDOW_SIZE.lower().split('x')]
-            self.resize(w, h)
-        except Exception:
-            self.resize(1200, 800)
-        self.setMinimumSize(*MAIN_WINDOW_MIN_SIZE)
-
+        
         # estado
         self.candidates: List[Tuple[int, str, List[int]]] = []
         self.best: Optional[Tuple[int, str, int]] = None  # (id, name, score)
@@ -158,6 +152,7 @@ class App(QWidget):
         self.cleaning_interface = None
         self.administrative_interface = None
         self.schedule_interface = None
+        self.schedule_button = None
 
         # Construir interfaz
         self._build_ui()
@@ -177,170 +172,113 @@ class App(QWidget):
         self._dispatcher = UiDispatcher(self)
 
     def _build_ui(self):
-        # No usar setup_futuristic_styles porque estamos usando tema claro del HTML
-        # styles.setup_futuristic_styles(QApplication.instance())
-
-        # Colores exactos del HTML
-        PRIMARY_COLOR = "#136dec"
-        BG_LIGHT_HTML = "#f6f7f8"
-        TEXT_GRAY_DARK = "#111827"  # gray-900
-        TEXT_GRAY_LIGHT = "#6b7280"  # gray-500
-        BORDER_COLOR = "#e5e7eb"  # gray-200
+        """Construye la interfaz principal simplificada para adultos mayores"""
+        # Colores simples y claros
+        PRIMARY_COLOR = "#2563eb"  # Azul más visible
+        BG_COLOR = "#ffffff"  # Fondo blanco
+        TEXT_COLOR = "#1f2937"  # Texto oscuro y claro
+        ACCENT_COLOR = "#10b981"  # Verde para estados positivos
         
-        # Fondo claro del HTML
-        self.setStyleSheet(f"background-color: {BG_LIGHT_HTML};")
+        self.setStyleSheet(f"background-color: {BG_COLOR};")
         
         root_layout = QVBoxLayout(self)
         root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.setSpacing(0)
 
-        # Header con logo y título (exacto del HTML)
-        header = QWidget(self)
-        header.setFixedHeight(60)
-        header.setStyleSheet(
-            f"background-color: transparent;"
-        )
-        header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(40, 12, 40, 12)
-        header_layout.setSpacing(16)
+        # Header simplificado (OCULTO para interfaces más limpias)
+        # header = QWidget(self)
+        # header.setFixedHeight(80)
+        # header.setStyleSheet(
+        #     f"background-color: transparent;"
+        # )
+        # header_layout = QHBoxLayout(header)
+        # header_layout.setContentsMargins(40, 20, 40, 20)
+        # header_layout.setSpacing(20)
+        # 
+        # # Título grande y claro
+        # header_title = QLabel("Sistema de Llaves CEFA", header)
+        # header_title.setStyleSheet(
+        #     f"color: {TEXT_COLOR}; "
+        #     f"font-size: 28px; "
+        #     f"font-weight: 700; "
+        #     f"font-family: 'Segoe UI', Arial, sans-serif;"
+        # )
+        # header_layout.addWidget(header_title)
+        # header_layout.addStretch()
+        # 
+        # root_layout.addWidget(header)
+
+        # Contenedor principal centrado
+        main_container = QWidget(self)
+        main_container.setStyleSheet(f"background-color: {BG_COLOR};")
+        main_layout = QVBoxLayout(main_container)
+        main_layout.setContentsMargins(60, 60, 60, 60)
+        main_layout.setAlignment(Qt.AlignCenter)
         
-        # Logo/ícono del sistema (escudo.png)
-        logo_label = QLabel(header)
-        logo_label.setFixedSize(32, 32)
-        escudo_pixmap = QPixmap("images/escudo.png")
-        if not escudo_pixmap.isNull():
-            escudo_pixmap = escudo_pixmap.scaled(32, 32, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            logo_label.setPixmap(escudo_pixmap)
+        # Contenedor central con la huella
+        center_widget = QWidget(main_container)
+        center_widget.setMaximumWidth(600)
+        center_layout = QVBoxLayout(center_widget)
+        center_layout.setSpacing(40)
+        center_layout.setAlignment(Qt.AlignCenter)
+        
+        # Título principal - MUY GRANDE Y CLARO
+        title = QLabel("¡Bienvenido!", center_widget)
+        title.setAlignment(Qt.AlignCenter)
+        title.setStyleSheet(
+            f"color: {TEXT_COLOR}; "
+            f"font-size: 48px; "
+            f"font-weight: 700; "
+            f"font-family: 'Segoe UI', Arial, sans-serif;"
+        )
+        center_layout.addWidget(title)
+        
+        # Imagen de huella - Usar la imagen real proporcionada
+        fingerprint_label = QLabel(center_widget)
+        fingerprint_label.setAlignment(Qt.AlignCenter)
+        
+        # Cargar la imagen de huella
+        fingerprint_pixmap = QPixmap("assets/images/Captura de pantalla 2025-11-30 135242.png")
+        if not fingerprint_pixmap.isNull():
+            # Escalar la imagen manteniendo la proporción (más pequeña para ver mejor los detalles)
+            fingerprint_pixmap = fingerprint_pixmap.scaled(
+                250, 250,
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation
+            )
+            fingerprint_label.setPixmap(fingerprint_pixmap)
         else:
-            # Fallback si la imagen no se carga
-            logo_label.setText("🛡️")
-            logo_label.setAlignment(Qt.AlignCenter)
-            logo_label.setStyleSheet(
+            # Fallback si la imagen no carga
+            fingerprint_label.setText("👆")
+            fingerprint_label.setStyleSheet(
                 f"color: {PRIMARY_COLOR}; "
-                f"font-size: 24px;"
+                f"font-size: 140px;"
             )
-        logo_label.setAlignment(Qt.AlignCenter)
-        header_layout.addWidget(logo_label)
-
-        # Título del header (exacto del HTML)
-        header_title = QLabel("Sistema de Dispensación de Llaves", header)
-        header_title.setStyleSheet(
-            f"color: {TEXT_GRAY_DARK}; "
-            f"font-size: 18px; "
-            f"font-weight: 700; "
-            f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
+        
+        center_layout.addWidget(fingerprint_label, 0, Qt.AlignCenter)
+        
+        # Instrucción MUY CLARA
+        instruction = QLabel("Coloque su dedo\nen el lector de huellas", center_widget)
+        instruction.setAlignment(Qt.AlignCenter)
+        instruction.setStyleSheet(
+            f"color: {TEXT_COLOR}; "
+            f"font-size: 32px; "
+            f"font-weight: 600; "
+            f"font-family: 'Segoe UI', Arial, sans-serif; "
+            f"line-height: 1.4;"
         )
-        header_layout.addWidget(header_title)
-        header_layout.addStretch()
+        center_layout.addWidget(instruction)
         
-        root_layout.addWidget(header)
-
-        # Sección principal con título y subtítulo centrado (exacto del HTML)
-        main_section = QWidget(self)
-        main_section.setStyleSheet(f"background-color: {BG_LIGHT_HTML};")
-        main_layout = QVBoxLayout(main_section)
-        main_layout.setContentsMargins(40, 40, 40, 40)
-        main_layout.setSpacing(32)
+        # ELIMINADO - Estado del sistema (texto verde que se quería quitar)
+        # Crear una etiqueta invisible para que no se rompa el código que la referencia
+        self.status_label = QLabel("", center_widget)
+        self.status_label.setVisible(False)
         
-        # Título principal centrado (exacto del HTML)
-        title_container = QWidget(main_section)
-        title_layout = QVBoxLayout(title_container)
-        title_layout.setContentsMargins(0, 0, 0, 0)
-        title_layout.setSpacing(8)
-        title_layout.setAlignment(Qt.AlignCenter)
+        main_layout.addWidget(center_widget)
+        root_layout.addWidget(main_container, 1)
         
-        main_title = QLabel("Sistema de Dispensación Biométrica", title_container)
-        main_title.setAlignment(Qt.AlignCenter)
-        main_title.setStyleSheet(
-            f"color: {TEXT_GRAY_DARK}; "
-            f"font-size: 36px; "
-            f"font-weight: 700; "
-            f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; "
-            f"line-height: 1.2;"
-        )
-        main_title.setWordWrap(False)  # Sin encapsulado, texto fluye naturalmente
-        title_layout.addWidget(main_title)
-        
-        subtitle_main = QLabel("Seleccione su rol para continuar", title_container)
-        subtitle_main.setAlignment(Qt.AlignCenter)
-        subtitle_main.setStyleSheet(
-            f"color: {TEXT_GRAY_LIGHT}; "
-            f"font-size: 16px; "
-            f"font-weight: 400; "
-            f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
-        )
-        subtitle_main.setWordWrap(False)  # Sin encapsulado, texto fluye naturalmente
-        title_layout.addWidget(subtitle_main)
-        
-        main_layout.addWidget(title_container)
-        
-        # Grilla de tarjetas de roles (exacto del HTML: grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6)
-        cards_container = QWidget(main_section)
-        cards_container.setStyleSheet(f"background-color: transparent;")
-        cards_layout = QGridLayout(cards_container)
-        cards_layout.setSpacing(24)
-        cards_layout.setContentsMargins(0, 0, 0, 0)
-        # Permitir que las columnas se expandan para que el texto no esté encapsulado
-        cards_layout.setColumnStretch(0, 1)
-        cards_layout.setColumnStretch(1, 1)
-        cards_layout.setColumnStretch(2, 1)
-        
-        # Definir los roles con sus íconos y descripciones (exacto del HTML)
-        roles = [
-            {
-                "icon": "images/administrador.jpg",  # Imagen del administrador
-                "title": "Administrador",
-                "description": "Gestión del sistema",
-                "action": lambda: self._handle_biometric_access("admin")
-            },
-            {
-                "icon": "images/instructor .jpg",  # Imagen del instructor (tiene espacio en el nombre)
-                "title": "Instructor",
-                "description": "Acceso a aulas",
-                "action": lambda: self._handle_biometric_access("instructor")
-            },
-            {
-                "icon": "images/seguridad.jpg",  # Imagen de seguridad
-                "title": "Seguridad",
-                "description": "Control de áreas seguras",
-                "action": lambda: self._handle_biometric_access("security")
-            },
-            {
-                "icon": "images/aseo.jpg",  # Imagen de aseo
-                "title": "Aseo",
-                "description": "Acceso a almacenes",
-                "action": lambda: self._handle_biometric_access("cleaning")
-            },
-            {
-                "icon": "images/administrativo.jpg",  # Imagen administrativo
-                "title": "Administrativo",
-                "description": "Oficinas y archivos",
-                "action": lambda: self._handle_biometric_access("administrative")
-            },
-            {
-                "icon": "images/calendario.jpg",  # Imagen de calendario/programación
-                "title": "Ver Programación",
-                "description": "Revisar horarios",
-                "action": self._show_schedule_interface
-            }
-        ]
-        
-        # Crear las 6 tarjetas y organizarlas en grilla (3 columnas)
-        num_cols = 3
-        for i, role in enumerate(roles):
-            row = i // num_cols
-            col = i % num_cols
-            card = styles.create_role_card(
-                cards_container,
-                role["icon"],
-                role["title"],
-                role["description"],
-                role["action"]
-            )
-            cards_layout.addWidget(card, row, col)
-        
-        main_layout.addWidget(cards_container)
-        root_layout.addWidget(main_section, 1)
+        # Agregar botón de programación en la esquina inferior derecha
+        self._create_schedule_button()
 
         # Variables para el lector biométrico
         self.var_fp_port = Var(FINGERPRINT_PORT_DEFAULT)
@@ -352,18 +290,63 @@ class App(QWidget):
         # Variable para rastrear la interfaz solicitada
         self.requested_interface = None
 
+        # Inicializar interfaz de programación
+        self.schedule_interface = None
+
+    def _create_schedule_button(self):
+        """Crea el botón de programación en la esquina"""
+        if self.schedule_button is None:
+            self.schedule_button = QPushButton("📅", self)
+            self.schedule_button.setCursor(Qt.PointingHandCursor)
+            self.schedule_button.setFixedSize(70, 70)  # Aumentado de 60x60 a 70x70
+            self.schedule_button.setStyleSheet(
+                "QPushButton {"
+                "  background-color: #6b7280; "
+                "  color: white; "
+                "  border: none; "
+                "  border-radius: 35px; "  # Aumentado de 30px a 35px para mantener la forma circular
+                "  font-size: 28px; "  # Aumentado de 24px a 28px
+                "  font-weight: 600; "
+                "}"
+                "QPushButton:hover {"
+                "  background-color: #4b5563;"
+                "}"
+                "QPushButton:pressed {"
+                "  background-color: #374151;"
+                "}"
+            )
+            self.schedule_button.clicked.connect(self._show_schedule_interface)
+        
+        # Posicionar el botón en la esquina inferior derecha
+        self._position_schedule_button()
+
+    def _position_schedule_button(self):
+        """Posiciona el botón de programación en la esquina inferior derecha"""
+        if self.schedule_button:
+            self.schedule_button.move(self.width() - 80, self.height() - 80)  # Ajustado de 70 a 80 para el nuevo tamaño
+
+    def resizeEvent(self, event):
+        """Maneja el evento de redimensionamiento para reposicionar el botón"""
+        super().resizeEvent(event)
+        self._position_schedule_button()
+
+    def keyPressEvent(self, event):
+        """Maneja eventos de teclado"""
+        if event.key() == Qt.Key_Escape:
+            print("🚪 Tecla ESC presionada - Cerrando aplicación...")
+            self.force_exit()
+        else:
+            super().keyPressEvent(event)
+
     def _set_status(self, text: str):
+        """Actualiza el mensaje de estado en la pantalla principal"""
         try:
             self.status_label.setText(text)
         except Exception:
             pass
 
-    def _handle_biometric_access(self, interface_type):
-        self.requested_interface = interface_type
-        # Acceso directo temporal sin verificación por huella
-        self._open_requested_interface()
-
     def _open_requested_interface(self):
+        """Abre la interfaz solicitada y oculta la ventana principal"""
         if not self.requested_interface:
             return
         print(f"🚪 Abriendo interfaz solicitada: {self.requested_interface}")
@@ -371,13 +354,14 @@ class App(QWidget):
         try:
             if self.requested_interface == "admin":
                 if not self.admin_interface:
-                    from admin_interface import AdminInterface  # PySide6 version
+                    from src.interfaces.admin_interface import AdminInterface  # PySide6 version
                     self.admin_interface = AdminInterface(self)
                 self._close_fingerprint_scan_window()
+                # NO ocultar la ventana principal, solo mostrar la interfaz secundaria
                 QTimer.singleShot(100, self.admin_interface.show_admin_interface)
             elif self.requested_interface == "instructor":
                 if not self.instructor_interface:
-                    from instructor_interface import InstructorInterface
+                    from src.interfaces.instructor_interface import InstructorInterface
                     # Pasar el usuario autenticado (pid, name) para saludar y evitar segundo escaneo
                     authed_user = None
                     try:
@@ -392,10 +376,11 @@ class App(QWidget):
                         pass
                     self.instructor_interface = InstructorInterface(self, authed_user)
                 self._close_fingerprint_scan_window()
+                # NO ocultar la ventana principal, solo mostrar la interfaz secundaria
                 QTimer.singleShot(100, self.instructor_interface.show_instructor_interface)
             elif self.requested_interface == "security":
                 if not self.security_interface:
-                    from security_interface import SecurityInterface
+                    from src.interfaces.security_interface import SecurityInterface
                     authed_user = None
                     try:
                         if self.candidates and self.best:
@@ -412,18 +397,21 @@ class App(QWidget):
                     except Exception:
                         pass
                 self._close_fingerprint_scan_window()
+                # NO ocultar la ventana principal, solo mostrar la interfaz secundaria
                 QTimer.singleShot(100, self.security_interface.show_security_interface)
             elif self.requested_interface == "cleaning":
                 if not self.cleaning_interface:
-                    from cleaning_interface import CleaningInterface
+                    from src.interfaces.cleaning_interface import CleaningInterface
                     self.cleaning_interface = CleaningInterface(self)
                 self._close_fingerprint_scan_window()
+                # NO ocultar la ventana principal, solo mostrar la interfaz secundaria
                 QTimer.singleShot(100, self.cleaning_interface.show_cleaning_interface)
             elif self.requested_interface == "administrative":
                 if not self.administrative_interface:
-                    from administrative_interface import AdministrativeInterface
+                    from src.interfaces.administrative_interface import AdministrativeInterface
                     self.administrative_interface = AdministrativeInterface(self)
                 self._close_fingerprint_scan_window()
+                # NO ocultar la ventana principal, solo mostrar la interfaz secundaria
                 QTimer.singleShot(100, self.administrative_interface.show_administrative_interface)
         finally:
             self.requested_interface = None
@@ -438,6 +426,39 @@ class App(QWidget):
         except Exception as e:
             print(f"⚠️ Error cerrando modal de escaneo: {e}")
             log_file(f"⚠️ Error cerrando modal de escaneo: {e}")
+
+    def show_main_window(self):
+        """Método público para mostrar la ventana principal nuevamente"""
+        """Las interfaces hijas pueden llamar a este método cuando se cierren"""
+        try:
+            print("🔄 Restaurando ventana principal...")
+            
+            # Forzar restauración del estado normal primero
+            self.setWindowState(Qt.WindowNoState)
+            
+            # Mostrar la ventana
+            self.show()
+            self.raise_()
+            self.activateWindow()
+            
+            # Forzar pantalla completa con un retraso mayor
+            QTimer.singleShot(100, self._apply_fullscreen)
+            
+            print("✅ Ventana principal en pantalla completa")
+            log_file("🔄 Ventana principal restaurada en pantalla completa")
+        except Exception as e:
+            print(f"⚠️ Error restaurando ventana principal: {e}")
+            log_file(f"⚠️ Error restaurando ventana principal: {e}")
+    
+    def _apply_fullscreen(self):
+        """Aplicar pantalla completa con un pequeño retraso para asegurar la restauración"""
+        try:
+            # Forzar restauración del estado normal primero
+            self.setWindowState(Qt.WindowNoState)
+            # Aplicar pantalla completa
+            self.showFullScreen()
+        except Exception as e:
+            print(f"⚠️ Error aplicando pantalla completa: {e}")
 
     def _restore_main_window(self):
         try:
@@ -532,13 +553,22 @@ class App(QWidget):
 
     # ============ INTERFACES DE USUARIOS ============
     def _show_schedule_interface(self):
+        """Muestra la interfaz de programación"""
         try:
-            if not self.schedule_interface:
-                from schedule_interface import ScheduleInterface
+            print("📅 Abriendo interfaz de programación...")
+            
+            # Crear la interfaz de programación si no existe
+            if self.schedule_interface is None:
+                from src.interfaces.schedule_interface import ScheduleInterface
                 self.schedule_interface = ScheduleInterface(self)
+            
+            # Mostrar la interfaz de programación
             self.schedule_interface.show_schedule_interface()
+            
+            print("✅ Interfaz de programación mostrada")
         except Exception as e:
-            QMessageBox.warning(self, "⚠️", f"Error abriendo programación: {e}")
+            print(f"❌ Error abriendo interfaz de programación: {e}")
+            QMessageBox.critical(self, "Error", f"Error abriendo interfaz de programación:\n{e}")
 
     # ============ FUNCIONALIDADES DEL SISTEMA ORIGINAL ============
     def _show_fingerprint_modal(self):
@@ -809,19 +839,76 @@ class App(QWidget):
                                 f"Usuario identificado: {name}\nID: {pid}\n\nAcceso limitado concedido.\nContacte al administrador para permisos adicionales.")
 
     def cleanup(self):
+        """Limpia recursos y detiene hilos antes de cerrar"""
         try:
-            alert_system.cleanup()
-            desktop_alert_system.cleanup()
+            print("🧹 Iniciando limpieza de recursos...")
+            
+            # Detener el worker thread si está corriendo
+            if self.working and self.worker is not None:
+                print("⏸️ Deteniendo worker thread...")
+                self.working = False
+                # Esperar un poco para que el thread termine
+                if self.worker.is_alive():
+                    self.worker.join(timeout=2.0)
+                    if self.worker.is_alive():
+                        print("⚠️ Worker thread no terminó a tiempo")
+            
+            # Cerrar modal de huella si está abierto
+            if self.fingerprint_modal is not None:
+                try:
+                    self.fingerprint_modal.close()
+                except Exception:
+                    pass
+            
+            # Limpiar sistemas de alertas
+            try:
+                alert_system.cleanup()
+                desktop_alert_system.cleanup()
+            except Exception as e:
+                print(f"⚠️ Error limpiando alertas: {e}")
+            
+            print("✅ Limpieza completada")
         except Exception as e:
             print(f"⚠️ Error en limpieza: {e}")
-
-    def on_closing(self):
+    
+    def force_exit(self):
+        """Forzar salida completa de la aplicación"""
         try:
+            print("🛑 Forzando salida de la aplicación...")
+            # Limpiar recursos
             self.cleanup()
-            self.close()
+            
+            # Forzar cierre de la aplicación Qt
+            app = QApplication.instance()
+            if app:
+                app.quit()
+            
+            # Forzar salida del sistema
+            import sys
+            sys.exit(0)
+        except Exception as e:
+            print(f"⚠️ Error forzando salida: {e}")
+            import sys
+            sys.exit(1)
+
+    def closeEvent(self, event):
+        """Maneja el evento de cierre de la ventana (cuando presionas X)"""
+        try:
+            print("🚪 Cerrando aplicación...")
+            self.force_exit()
+            event.accept()  # Aceptar el cierre
         except Exception as e:
             print(f"⚠️ Error al cerrar: {e}")
-            self.close()
+            event.accept()
+            import sys
+            sys.exit(1)
+
+    def on_closing(self):
+        """Método llamado cuando la aplicación está por cerrarse"""
+        try:
+            self.force_exit()
+        except Exception as e:
+            print(f"⚠️ Error al cerrar: {e}")
 
     def _end_error(self, msg: str):
         error_msg = f"❌ ERROR EN ESCANEO DE HUELLA: {msg}"
@@ -845,6 +932,10 @@ def main():
         styles.setup_futuristic_styles(qt_app)
         win = App()
         win.show()
+        
+        # PANTALLA COMPLETA REAL (sin barra de tareas de Windows)
+        win.showFullScreen()
+        
         qt_app.aboutToQuit.connect(win.on_closing)
         qt_app.exec()
     except Exception as e:

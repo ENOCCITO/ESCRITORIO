@@ -1,0 +1,188 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║              🏗️  ESTRUCTURA DEL PROYECTO REORGANIZADO 🏗️                   ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+ESCRITORIO/
+│
+├── 📁 src/                              # CÓDIGO FUENTE PRINCIPAL
+│   ├── 📁 interfaces/                   # Interfaces de usuario (7 archivos)
+│   │   ├── admin_interface.py
+│   │   ├── administrative_interface.py
+│   │   ├── cleaning_interface.py
+│   │   ├── instructor_interface.py
+│   │   ├── security_interface.py
+│   │   ├── schedule_interface.py
+│   │   └── fingerprint_registration_interface.py
+│   │
+│   ├── 📁 core/                         # Lógica de negocio (9 archivos)
+│   │   ├── alert_system.py
+│   │   ├── arduino_controller.py
+│   │   ├── biometric_scanner.py
+│   │   ├── desktop_alerts.py
+│   │   ├── fingerprint_simulator.py
+│   │   ├── fingerprint_validator.py
+│   │   ├── key_manager.py
+│   │   ├── role_validator.py
+│   │   └── sync_fingerprints.py
+│   │
+│   ├── 📁 utils/                        # Utilidades (3 archivos)
+│   │   ├── utils.py
+│   │   ├── db_utils.py
+│   │   └── styles.py
+│   │
+│   └── 📁 config/                       # Configuración (1 archivo)
+│       └── config.py
+│
+├── 📁 arduino/                          # CÓDIGO ARDUINO (6 archivos .ino)
+│   ├── arduino_nema17_CORREGIDO_FINAL.ino
+│   ├── arduino_nema17_FINAL_FUNCIONANDO.ino
+│   ├── arduino_nema17_controller.ino
+│   ├── arduino_nema17_controller_FINAL.ino
+│   ├── arduino_nema17_controller_fixed.ino
+│   └── arduino_simple_working.ino
+│
+├── 📁 docs/                             # DOCUMENTACIÓN (10 archivos .md)
+│   ├── README.md
+│   ├── README_ALERTAS.md
+│   ├── README_ARDUINO_INTEGRATION.md
+│   ├── README_BIOMETRICO.md
+│   ├── README_NUEVO_SISTEMA.md
+│   ├── README_REGISTRO_HUELLAS.md
+│   ├── PROMPT_STITCH_AMBIENTES_DISPONIBLES.md
+│   ├── PROMPT_STITCH_ASEO.md
+│   ├── PROMPT_STITCH_INSTRUCTOR.md
+│   └── PROMPT_STITCH_SEGURIDAD.md
+│
+├── 📁 data/                             # DATOS EXPORTADOS (3 archivos .csv)
+│   ├── programacion_20251015_125355.csv
+│   ├── programacion_dia_20250908_102709.csv
+│   └── programacion_dia_20251015_105030.csv
+│
+├── 📁 assets/                           # RECURSOS GRÁFICOS
+│   ├── 📁 images/                       # (21 archivos de imágenes)
+│   ├── idear.png
+│   └── sena.png
+│
+├── 📁 scripts/                          # SCRIPTS DE UTILIDAD (6 archivos)
+│   ├── debug_arduino_complete.py
+│   ├── diagnose_database_error.py
+│   ├── diagnose_fingerprints.py
+│   ├── explore_tables.py
+│   ├── fix_arduino_port.py
+│   └── liberar_puerto_arduino.py
+│
+├── 📁 .venv/                            # ENTORNO VIRTUAL (Python 3.12.10)
+│   └── [Dependencias: PySide6, MySQL, pyserial, pyfingerprint, psutil]
+│
+├── 📄 main.py                           # ⭐ PUNTO DE ENTRADA PRINCIPAL
+├── 📄 requirements.txt                  # 📦 Dependencias del proyecto
+│
+├── 📄 ESTRUCTURA_PROYECTO.md            # 📖 Documentación de estructura
+├── 📄 RESUMEN_REORGANIZACION.md         # 📝 Resumen de cambios
+├── 📄 README_PRINCIPAL.md               # 📚 README principal
+├── 📄 INSTRUCCIONES_LIMPIEZA.md         # 🧹 Guía de limpieza
+│
+├── 📄 activate.ps1                      # 🚀 Activar entorno (PowerShell)
+├── 📄 activate.bat                      # 🚀 Activar entorno (CMD)
+│
+└── 📄 .gitignore                        # 🔒 Archivos ignorados por Git
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                           ESTADÍSTICAS DEL PROYECTO                          ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║                                                                              ║
+║  📊 Archivos Python:           26 archivos movidos + main.py                ║
+║  📊 Archivos Arduino:          6 archivos .ino                              ║
+║  📊 Archivos de Docs:          10 archivos .md (en docs/)                   ║
+║  📊 Archivos de Datos:         3 archivos .csv                              ║
+║  📊 Carpetas principales:      7 (src, arduino, docs, data, assets, scripts)║
+║  📊 Subcarpetas en src:        4 (interfaces, core, utils, config)          ║
+║  📊 Archivos __init__.py:      5 archivos creados                           ║
+║  📊 Archivos de documentación: 4 nuevos (ESTRUCTURA, RESUMEN, README, etc.) ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                            IMPORTS ACTUALIZADOS                              ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║                                                                              ║
+║  ANTES:                                 DESPUÉS:                             ║
+║  ──────────────────────────────────     ───────────────────────────────────  ║
+║  import styles                    →     from src.utils import styles        ║
+║  from config import *             →     from src.config.config import *     ║
+║  from utils import *              →     from src.utils.utils import *       ║
+║  from alert_system import ...     →     from src.core.alert_system import...║
+║  from admin_interface import ...  →     from src.interfaces.admin... ...   ║
+║                                                                              ║
+║  ✅ Total de archivos actualizados: 20                                      ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                          ENTORNO VIRTUAL UNIFICADO                           ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║                                                                              ║
+║  🐍 Python:              3.12.10                                            ║
+║  📦 Ubicación:           .venv/                                             ║
+║  ✅ Estado:              Consolidado (de 2 entornos a 1)                    ║
+║                                                                              ║
+║  Dependencias instaladas:                                                    ║
+║    • PySide6 (6.10.1)           - Framework de interfaz gráfica            ║
+║    • mysql-connector-python      - Conexión a MySQL                        ║
+║    • pyserial                    - Comunicación serial con Arduino         ║
+║    • pyfingerprint               - Gestión de huellas dactilares           ║
+║    • psutil                      - Información del sistema                 ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                              CÓMO USAR EL PROYECTO                           ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║                                                                              ║
+║  1️⃣  ACTIVAR ENTORNO VIRTUAL:                                               ║
+║      PowerShell:  .\activate.ps1                                            ║
+║      CMD:         activate.bat                                              ║
+║                                                                              ║
+║  2️⃣  EJECUTAR LA APLICACIÓN:                                                ║
+║      python main.py                                                         ║
+║                                                                              ║
+║  3️⃣  LEER DOCUMENTACIÓN:                                                    ║
+║      - ESTRUCTURA_PROYECTO.md      (estructura completa)                    ║
+║      - README_PRINCIPAL.md          (guía de uso)                           ║
+║      - RESUMEN_REORGANIZACION.md    (cambios realizados)                    ║
+║                                                                              ║
+║  4️⃣  SCRIPTS DE UTILIDAD:                                                   ║
+║      python scripts/debug_arduino_complete.py                               ║
+║      python scripts/diagnose_database_error.py                              ║
+║                                                                              ║
+║  5️⃣  LIMPIAR ARCHIVOS TEMPORALES:                                           ║
+║      Ver: INSTRUCCIONES_LIMPIEZA.md                                         ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                 BENEFICIOS                                   ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║                                                                              ║
+║  ✅ Código organizado por responsabilidad (MVC mejorado)                    ║
+║  ✅ Fácil navegación y localización de archivos                             ║
+║  ✅ Imports claros y explícitos                                             ║
+║  ✅ Un solo entorno virtual (simplificación)                                ║
+║  ✅ Separación de código, datos, docs y assets                              ║
+║  ✅ Escalable y mantenible                                                  ║
+║  ✅ Mejor experiencia de desarrollo                                         ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+                         ✨ ¡PROYECTO REORGANIZADO! ✨
+
+                    📅 Fecha: 30 de noviembre de 2025
+                    🎯 Estado: ✅ Completado exitosamente
