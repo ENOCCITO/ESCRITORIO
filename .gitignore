@@ -1,6 +1,6 @@
-# Entornos virtuales
+# Entorno virtual (usar solo .venv)
 .venv/
-.venv312/
+.venv_old/
 venv/
 env/
 ENV/
@@ -13,6 +13,12 @@ __pycache__/
 
 # Archivos de log
 *.log
+
+# Archivos temporales del proyecto
+update_imports.py
+
+# Datos exportados
+*.csv
 
 # Archivos de IDE
 .vscode/
