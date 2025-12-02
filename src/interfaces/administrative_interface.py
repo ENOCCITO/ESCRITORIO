@@ -41,38 +41,39 @@ class AdministrativeInterface:
         scroll_area.setStyleSheet("""
             QScrollArea {
                 border: none;
-                background-color: transparent;
+                background-color: #ffffff;
             }
             QScrollBar:vertical {
-                background-color: #2a2a2a;
-                width: 12px;
-                border-radius: 6px;
+                background-color: #f0f0f0;
+                width: 10px;
+                border-radius: 5px;
             }
             QScrollBar::handle:vertical {
-                background-color: #00bcd4;
-                border-radius: 6px;
-                min-height: 20px;
+                background-color: #0D6EFD;
+                border-radius: 5px;
+                min-height: 30px;
             }
             QScrollBar::handle:vertical:hover {
-                background-color: #00acc1;
+                background-color: #0b5ed7;
             }
         """)
         
         # Widget contenido responsive
         content_widget = QWidget()
+        content_widget.setStyleSheet("background-color: #ffffff;")
         content_layout = QVBoxLayout(content_widget)
         
         # Márgenes responsive basados en el tamaño de pantalla
         try:
-            margin_base = max(10, min(30, int(base_width * 0.02)))
-            spacing_base = max(10, min(25, int(base_height * 0.02)))
+            margin_base = max(30, min(60, int(base_width * 0.03)))
+            spacing_base = max(20, min(40, int(base_height * 0.025)))
             content_layout.setContentsMargins(margin_base, margin_base, margin_base, margin_base)
             content_layout.setSpacing(spacing_base)
         except Exception:
-            content_layout.setContentsMargins(20, 20, 20, 20)
-            content_layout.setSpacing(20)
+            content_layout.setContentsMargins(40, 40, 40, 40)
+            content_layout.setSpacing(30)
         
-        # Header con gradiente
+        # Header limpio
         self._create_modern_header(content_widget, content_layout)
         
         # Contenido principal
@@ -88,7 +89,7 @@ class AdministrativeInterface:
         print("✅ Interfaz administrativa lista en pantalla completa")
 
     def _create_modern_header(self, parent, layout):
-        """Crea un header moderno responsive con gradiente"""
+        """Crea un header moderno limpio y blanco"""
         # Calcular escala responsive
         try:
             screen_width = parent.window().screen().availableGeometry().width()
@@ -99,94 +100,112 @@ class AdministrativeInterface:
         header_frame = QFrame()
         header_frame.setStyleSheet("""
             QFrame {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #1a1a2e, stop:1 #16213e);
-                border-radius: 15px;
-                margin: 5px;
+                background-color: #ffffff;
+                border: none;
+                border-bottom: 2px solid #e9ecef;
             }
         """)
         
         # Altura responsive
-        header_height = max(80, int(120 * scale_factor))
+        header_height = max(80, int(100 * scale_factor))
         header_frame.setMinimumHeight(header_height)
         
         # Márgenes responsive
         margin_size = max(20, int(30 * scale_factor))
         padding_size = max(15, int(20 * scale_factor))
         
-        header_layout = QVBoxLayout(header_frame)
+        header_layout = QHBoxLayout(header_frame)
         header_layout.setContentsMargins(margin_size, padding_size, margin_size, padding_size)
-        header_layout.setSpacing(max(8, int(10 * scale_factor)))
+        header_layout.setSpacing(max(15, int(20 * scale_factor)))
         
-        # Icono y título principal responsive
-        title_container = QHBoxLayout()
-        
-        # Tamaños responsive para el icono
-        icon_size = max(60, int(80 * scale_factor))
-        icon_font_size = max(32, int(48 * scale_factor))
-        
-        icon_label = QLabel("📋")
-        icon_label.setStyleSheet(f"""
-            QLabel {{
-                font-size: {icon_font_size}px;
-                color: #00bcd4;
-                background-color: rgba(0, 188, 212, 0.1);
-                border-radius: {icon_size//3}px;
-                padding: {max(12, int(15 * scale_factor))}px;
-                min-width: {icon_size}px;
-                max-width: {icon_size}px;
-                min-height: {icon_size}px;
-                max-height: {icon_size}px;
-            }}
-        """)
-        icon_label.setAlignment(Qt.AlignCenter)
-        
-        # Título responsive
-        title_font_size = max(20, int(28 * scale_factor))
-        title_text = QLabel("¡BIENVENIDO PERSONAL ADMINISTRATIVO!")
+        # Título principal responsive
+        title_font_size = max(24, int(32 * scale_factor))
+        title_text = QLabel("📋 Interfaz Administrativa")
         title_text.setStyleSheet(f"""
             QLabel {{
                 font-size: {title_font_size}px;
                 font-weight: bold;
-                color: #ffffff;
+                color: #111418;
                 background-color: transparent;
                 padding: {max(8, int(10 * scale_factor))}px;
             }}
         """)
         title_text.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        title_text.setWordWrap(True)  # Permitir salto de línea en pantallas pequeñas
         
-        title_container.addWidget(icon_label)
+        # Subtítulo
+        subtitle_font_size = max(14, int(16 * scale_factor))
+        subtitle_text = QLabel("Gestión de recursos y ambientes administrativos")
+        subtitle_text.setStyleSheet(f"""
+            QLabel {{
+                font-size: {subtitle_font_size}px;
+                color: #617289;
+                background-color: transparent;
+            }}
+        """)
+        
+        # Layout vertical para título y subtítulo
+        title_container = QVBoxLayout()
+        title_container.setSpacing(5)
         title_container.addWidget(title_text)
-        title_container.addStretch()
+        title_container.addWidget(subtitle_text)
         
         header_layout.addLayout(title_container)
+        header_layout.addStretch()
+        
+        # Botón cerrar (X)
+        close_btn = QPushButton("✕")
+        close_btn.setFixedSize(40, 40)
+        close_btn.setCursor(Qt.PointingHandCursor)
+        close_btn.setStyleSheet(
+            "QPushButton {"
+            "background-color: #f0f2f4; "
+            "color: #111418; "
+            "border: none; "
+            "border-radius: 8px; "
+            "font-size: 20px; "
+            "font-weight: 600;"
+            "}"
+            "QPushButton:hover {"
+            "background-color: #E5E7EB; "
+            "}"
+        )
+        # Conectar al padre para cerrar
+        try:
+            parent_window = parent
+            while parent_window and not hasattr(parent_window, 'close'):
+                parent_window = parent_window.parent()
+            if parent_window and hasattr(parent_window, 'close'):
+                close_btn.clicked.connect(parent_window.close)
+        except Exception:
+            pass
+        
+        header_layout.addWidget(close_btn)
+        
         layout.addWidget(header_frame)
     
     def _create_main_content(self, parent, layout):
-        """Crea el contenido principal con grid responsive"""
+        """Crea el contenido principal con grid responsive y diseño limpio"""
         # Calcular escala responsive para fuentes y espaciado
         try:
             screen_width = parent.window().screen().availableGeometry().width()
             scale_factor = max(0.7, min(1.5, screen_width / 1200.0))
-            font_size = max(16, min(28, int(24 * scale_factor)))
-            padding_size = max(10, min(25, int(15 * scale_factor)))
+            font_size = max(18, min(24, int(20 * scale_factor)))
+            padding_size = max(12, min(20, int(15 * scale_factor)))
         except Exception:
             scale_factor = 1.0
-            font_size = 24
+            font_size = 20
             padding_size = 15
         
         # Título de sección responsive
-        section_title = QLabel("🏢 AMBIENTES ASIGNADOS")
+        section_title = QLabel("🏢 Ambientes Asignados")
         section_title.setStyleSheet(f"""
             QLabel {{
                 font-size: {font_size}px;
-                font-weight: bold;
-                color: #00bcd4;
-                background-color: rgba(0, 188, 212, 0.1);
-                padding: {padding_size}px {padding_size + 10}px;
-                border-radius: 10px;
-                margin: 10px 0;
+                font-weight: 600;
+                color: #111418;
+                background-color: transparent;
+                padding: {padding_size}px 0px;
+                border: none;
             }}
         """)
         layout.addWidget(section_title)
@@ -203,31 +222,28 @@ class AdministrativeInterface:
         environments_layout = QGridLayout(environments_container)
         
         # Espaciado responsive
-        spacing = max(10, min(25, int(20 * scale_factor)))
+        spacing = max(15, min(30, int(25 * scale_factor)))
         environments_layout.setSpacing(spacing)
         environments_layout.setContentsMargins(0, 0, 0, 0)
         
         environments = self._get_available_environments()
         
         if not environments:
-            no_envs_label = QLabel("❌ No hay ambientes asignados en la base de datos")
+            no_envs_label = QLabel("❌ No hay ambientes asignados")
             no_envs_label.setStyleSheet(f"""
                 QLabel {{
-                    font-size: {max(14, int(18 * scale_factor))}px;
-                    color: #ff6b6b;
-                    background-color: rgba(255, 107, 107, 0.1);
-                    padding: {max(20, int(30 * scale_factor))}px;
-                    border-radius: 15px;
-                    text-align: center;
+                    font-size: {max(16, int(18 * scale_factor))}px;
+                    color: #617289;
+                    background-color: #f8f9fa;
+                    padding: {max(40, int(50 * scale_factor))}px;
+                    border-radius: 12px;
+                    border: 2px dashed #dee2e6;
                 }}
             """)
             no_envs_label.setAlignment(Qt.AlignCenter)
             environments_layout.addWidget(no_envs_label, 0, 0, 1, 3)
         else:
             # Calcular número de columnas responsive
-            # Pantallas pequeñas (7"): 1 columna
-            # Pantallas medianas (15-27"): 2 columnas  
-            # Pantallas grandes (32"+): 3 columnas
             if screen_width < 1024:
                 cols = 1
             elif screen_width < 1600:
@@ -248,30 +264,27 @@ class AdministrativeInterface:
         layout.addWidget(environments_container)
     
     def _create_environment_card(self, parent, env_id, nombre, descripcion, ubicacion, piso, edificio, scale_factor=1.0):
-        """Crea una tarjeta moderna responsive para cada ambiente"""
+        """Crea una tarjeta moderna limpia para cada ambiente"""
         card = QFrame()
         card.setStyleSheet("""
             QFrame {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #2a2a2a, stop:1 #1e1e1e);
-                border: 2px solid #00bcd4;
-                border-radius: 15px;
-                margin: 5px;
+                background-color: #ffffff;
+                border: 1px solid #e9ecef;
+                border-radius: 12px;
             }
             QFrame:hover {
-                border-color: #00acc1;
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #333333, stop:1 #252525);
+                border-color: #0D6EFD;
+                background-color: #f8f9fa;
             }
         """)
         
         # Altura mínima responsive
-        min_height = max(150, int(200 * scale_factor))
+        min_height = max(180, int(220 * scale_factor))
         card.setMinimumHeight(min_height)
         
         # Márgenes y espaciado responsive
-        margin_size = max(15, int(20 * scale_factor))
-        spacing_size = max(10, int(15 * scale_factor))
+        margin_size = max(20, int(25 * scale_factor))
+        spacing_size = max(12, int(15 * scale_factor))
         
         card_layout = QVBoxLayout(card)
         card_layout.setContentsMargins(margin_size, margin_size, margin_size, margin_size)
@@ -280,40 +293,19 @@ class AdministrativeInterface:
         # Header de la tarjeta responsive
         header_layout = QHBoxLayout()
         
-        # Tamaños responsive para el icono
-        icon_size = max(40, int(60 * scale_factor))
-        icon_font_size = max(20, int(32 * scale_factor))
-        
-        icon_label = QLabel("🏢")
-        icon_label.setStyleSheet(f"""
-            QLabel {{
-                font-size: {icon_font_size}px;
-                color: #00bcd4;
-                background-color: rgba(0, 188, 212, 0.2);
-                border-radius: {icon_size//3}px;
-                padding: {max(8, int(10 * scale_factor))}px;
-                min-width: {icon_size}px;
-                max-width: {icon_size}px;
-                min-height: {icon_size}px;
-                max-height: {icon_size}px;
-            }}
-        """)
-        icon_label.setAlignment(Qt.AlignCenter)
-        
         # Título responsive
-        title_font_size = max(16, int(20 * scale_factor))
+        title_font_size = max(16, int(18 * scale_factor))
         title_label = QLabel(nombre)
         title_label.setStyleSheet(f"""
             QLabel {{
                 font-size: {title_font_size}px;
-                font-weight: bold;
-                color: #ffffff;
+                font-weight: 600;
+                color: #111418;
                 background-color: transparent;
             }}
         """)
         title_label.setWordWrap(True)
         
-        header_layout.addWidget(icon_label)
         header_layout.addWidget(title_label)
         header_layout.addStretch()
         
@@ -323,65 +315,64 @@ class AdministrativeInterface:
         details_frame = QFrame()
         details_frame.setStyleSheet(f"""
             QFrame {{
-                background-color: rgba(0, 188, 212, 0.05);
-                border-radius: 10px;
-                padding: {max(8, int(10 * scale_factor))}px;
+                background-color: #f8f9fa;
+                border-radius: 8px;
+                padding: {max(12, int(15 * scale_factor))}px;
             }}
         """)
         details_layout = QVBoxLayout(details_frame)
-        details_layout.setSpacing(max(6, int(8 * scale_factor)))
+        details_layout.setSpacing(max(8, int(10 * scale_factor)))
         
         # Tamaños de fuente responsive para detalles
-        detail_font_size = max(12, int(14 * scale_factor))
-        desc_font_size = max(11, int(13 * scale_factor))
+        detail_font_size = max(13, int(14 * scale_factor))
         
         # Ubicación
         if ubicacion:
-            ubicacion_label = QLabel(f"📍 Ubicación: {ubicacion}")
-            ubicacion_label.setStyleSheet(f"QLabel {{ color: #ffffff; font-size: {detail_font_size}px; }}")
+            ubicacion_label = QLabel(f"📍 {ubicacion}")
+            ubicacion_label.setStyleSheet(f"QLabel {{ color: #617289; font-size: {detail_font_size}px; }}")
             details_layout.addWidget(ubicacion_label)
         
         # Edificio y piso
-        building_text = f"🏢 Edificio: {edificio}" if edificio else "🏢 Edificio: No especificado"
+        building_text = f"🏢 {edificio}" if edificio else "🏢 No especificado"
         if piso:
-            building_text += f" | Piso: {piso}"
+            building_text += f" - Piso {piso}"
         building_label = QLabel(building_text)
-        building_label.setStyleSheet(f"QLabel {{ color: #ffffff; font-size: {detail_font_size}px; }}")
+        building_label.setStyleSheet(f"QLabel {{ color: #617289; font-size: {detail_font_size}px; }}")
         details_layout.addWidget(building_label)
         
         # Descripción
         if descripcion:
             desc_label = QLabel(f"📝 {descripcion}")
-            desc_label.setStyleSheet(f"QLabel {{ color: #cccccc; font-size: {desc_font_size}px; }}")
+            desc_label.setStyleSheet(f"QLabel {{ color: #8f9bb3; font-size: {detail_font_size}px; }}")
             desc_label.setWordWrap(True)
             details_layout.addWidget(desc_label)
         
         card_layout.addWidget(details_frame)
         
-        # Botón de acceso responsive
-        button_font_size = max(14, int(16 * scale_factor))
-        button_padding = max(10, int(12 * scale_factor))
+        # Espacio flexible
+        card_layout.addStretch()
         
-        access_btn = QPushButton("🚪 ACCEDER AL AMBIENTE")
+        # Botón de acceso responsive
+        button_font_size = max(14, int(15 * scale_factor))
+        button_padding = max(12, int(14 * scale_factor))
+        
+        access_btn = QPushButton("🚪 Acceder")
+        access_btn.setCursor(Qt.PointingHandCursor)
         access_btn.setStyleSheet(f"""
             QPushButton {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #00bcd4, stop:1 #00acc1);
+                background-color: #0D6EFD;
                 color: #ffffff;
                 font-size: {button_font_size}px;
-                font-weight: bold;
+                font-weight: 600;
                 border: none;
-                border-radius: 10px;
-                padding: {button_padding}px;
-                margin: 5px;
+                border-radius: 8px;
+                padding: {button_padding}px {button_padding + 8}px;
             }}
             QPushButton:hover {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #00acc1, stop:1 #0097a7);
+                background-color: #0b5ed7;
             }}
             QPushButton:pressed {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #0097a7, stop:1 #00838f);
+                background-color: #0a58ca;
             }}
         """)
         access_btn.clicked.connect(lambda checked, eid=env_id, n=nombre: self._access_environment(eid, n))
@@ -391,7 +382,7 @@ class AdministrativeInterface:
         return card
     
     def _create_modern_footer(self, parent, layout):
-        """Crea un footer moderno responsive"""
+        """Crea un footer moderno limpio y minimalista"""
         # Calcular escala responsive
         try:
             screen_width = parent.window().screen().availableGeometry().width()
@@ -402,61 +393,35 @@ class AdministrativeInterface:
         footer_frame = QFrame()
         footer_frame.setStyleSheet("""
             QFrame {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #1a1a2e, stop:1 #16213e);
-                border-radius: 15px;
-                margin: 5px;
+                background-color: #ffffff;
+                border: none;
+                border-top: 2px solid #e9ecef;
             }
         """)
         
         # Altura responsive
-        footer_height = max(60, int(80 * scale_factor))
+        footer_height = max(50, int(60 * scale_factor))
         footer_frame.setMinimumHeight(footer_height)
         
         # Márgenes responsive
         margin_size = max(20, int(30 * scale_factor))
-        padding_size = max(12, int(15 * scale_factor))
+        padding_size = max(15, int(20 * scale_factor))
         
         footer_layout = QHBoxLayout(footer_frame)
         footer_layout.setContentsMargins(margin_size, padding_size, margin_size, padding_size)
         
         # Información del sistema responsive
-        info_font_size = max(12, int(14 * scale_factor))
-        info_label = QLabel("Sistema CEFA - Gestión de Ambientes Administrativos")
+        info_font_size = max(13, int(14 * scale_factor))
+        info_label = QLabel("Sistema CEFA - Gestión Administrativa")
         info_label.setStyleSheet(f"""
             QLabel {{
-                color: #888888;
+                color: #8f9bb3;
                 font-size: {info_font_size}px;
             }}
         """)
         
-        # Botón de cerrar sesión responsive
-        button_font_size = max(14, int(16 * scale_factor))
-        button_padding = max(10, int(12 * scale_factor))
-        
-        logout_btn = QPushButton("🚪 CERRAR SESIÓN")
-        logout_btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: #ff6b6b;
-                color: #ffffff;
-                font-size: {button_font_size}px;
-                font-weight: bold;
-                border: none;
-                border-radius: 10px;
-                padding: {button_padding}px {max(20, int(25 * scale_factor))}px;
-            }}
-            QPushButton:hover {{
-                background-color: #ff5252;
-            }}
-            QPushButton:pressed {{
-                background-color: #e53935;
-            }}
-        """)
-        logout_btn.clicked.connect(parent.close)
-        
         footer_layout.addWidget(info_label)
         footer_layout.addStretch()
-        footer_layout.addWidget(logout_btn)
         
         layout.addWidget(footer_frame)
 

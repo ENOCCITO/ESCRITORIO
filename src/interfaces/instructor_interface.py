@@ -108,6 +108,26 @@ class InstructorInterface:
             header_layout.addWidget(header_title)
             header_layout.addStretch()
             
+            # Botón cerrar (X) para volver a la pantalla principal
+            close_btn = QPushButton("✕", header)
+            close_btn.setFixedSize(40, 40)
+            close_btn.setCursor(Qt.PointingHandCursor)
+            close_btn.setStyleSheet(
+                "QPushButton {"
+                "background-color: #404854; "
+                "color: white; "
+                "border: none; "
+                "border-radius: 6px; "
+                "font-size: 20px; "
+                "font-weight: 600;"
+                "}"
+                "QPushButton:hover {"
+                "background-color: #505864; "
+                "}"
+            )
+            close_btn.clicked.connect(instructor_win.close)
+            header_layout.addWidget(close_btn)
+            
             root_layout.addWidget(header)
             
             # Contenido principal con scroll (exacto del HTML)
@@ -208,9 +228,6 @@ class InstructorInterface:
             
             # Sección AMBIENTE ASIGNADO
             self._show_assigned_environment_stitch_new(main_content, main_layout)
-            
-            # Sección HORARIO DE CLASES
-            self._show_instructor_calendar_stitch_new(main_content, main_layout)
             
             scroll.setWidget(main_content)
             root_layout.addWidget(scroll, 1)

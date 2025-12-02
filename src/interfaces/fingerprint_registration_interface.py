@@ -105,63 +105,6 @@ class FingerprintRegistrationInterface:
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        # Header (exacto del HTML)
-        header = QWidget(win)
-        header.setFixedHeight(60)
-        header.setStyleSheet(
-            f"background-color: transparent; "
-            f"border-bottom: 1px solid {BORDER_COLOR};"
-        )
-        header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(16, 12, 16, 12)
-        header_layout.setSpacing(16)
-        
-        # Logo y título izquierda
-        left_header = QWidget(header)
-        left_header_layout = QHBoxLayout(left_header)
-        left_header_layout.setContentsMargins(0, 0, 0, 0)
-        left_header_layout.setSpacing(16)
-        
-        logo_container = QWidget(left_header)
-        logo_container.setFixedSize(24, 24)
-        logo_label = QLabel("🛡️", logo_container)
-        logo_label.setAlignment(Qt.AlignCenter)
-        logo_label.setStyleSheet(
-            f"color: {PRIMARY_COLOR}; "
-            f"font-size: 24px;"
-        )
-        left_header_layout.addWidget(logo_container)
-        
-        header_title = QLabel("Sistema de Dispensación Biométrica", left_header)
-        header_title.setStyleSheet(
-            f"color: {TEXT_GRAY_DARK}; "
-            f"font-size: 18px; "
-            f"font-weight: 700; "
-            f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
-        )
-        header_title.setWordWrap(False)
-        left_header_layout.addWidget(header_title)
-        
-        header_layout.addWidget(left_header)
-        header_layout.addStretch()
-        
-        # Botón Volver (oculto para interfaces más limpias)
-        # back_btn = QPushButton("← Volver", header)
-        # back_btn.setCursor(Qt.PointingHandCursor)
-        # back_btn.setStyleSheet(
-        #     f"background-color: #f0f2f4; "
-        #     f"color: {TEXT_GRAY_DARK}; "
-        #     f"border: none; "
-        #     f"border-radius: 8px; "
-        #     f"padding: 8px 12px; "
-        #     f"font-size: 14px; "
-        #     f"font-weight: 700;"
-        # )
-        # back_btn.clicked.connect(win.close)
-        # header_layout.addWidget(back_btn)
-        
-        root.addWidget(header)
-        
         # Main content
         main_content = QWidget(win)
         main_content.setStyleSheet(f"background-color: {BG_LIGHT_HTML};")
@@ -252,20 +195,6 @@ class FingerprintRegistrationInterface:
         self.search_entry.textChanged.connect(self._on_search_changed)
         controls.addWidget(search_label)
         controls.addWidget(self.search_entry, 1)
-
-        check_btn = QPushButton("🔌 Verificar Conexión", controls_container)
-        check_btn.setCursor(Qt.PointingHandCursor)
-        check_btn.setStyleSheet(
-            f"background-color: {PRIMARY_COLOR}; "
-            f"color: white; "
-            f"border: none; "
-            f"border-radius: 8px; "
-            f"padding: 8px 16px; "
-            f"font-size: 14px; "
-            f"font-weight: 700;"
-        )
-        check_btn.clicked.connect(self._check_scanner_connection)
-        controls.addWidget(check_btn)
         
         main_layout.addWidget(controls_container)
 

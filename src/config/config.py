@@ -7,7 +7,7 @@ config.py
 """
 
 # ============ CONFIGURACIÓN DE BASE DE DATOS ============
-DB_CONFIG = dict(host="localhost", user="root", password="", database="sistema_llaves_v2")
+DB_CONFIG = dict(host="localhost", user="root", password="", database="sicefa")
 
 # ============ CONFIGURACIÓN DE PUERTOS ============
 FINGERPRINT_PORT_DEFAULT = "COM3"

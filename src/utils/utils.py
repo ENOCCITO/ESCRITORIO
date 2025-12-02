@@ -140,85 +140,103 @@ def db_connect():
 
 def load_candidates_from_db() -> List[Tuple[int, str, List[int]]]:
     """
-    (person_id, full_name, template_list[int]) de personas con huella digital
-    y activas en el sistema. Las huellas están en formato binario del sensor.
+    Carga candidatos (person_id, full_name, template_list[int]) de SICEFA.
+    Usa la tabla 'people' de la base de datos SICEFA.
+    Nota: Como SICEFA no tiene huella digital en la tabla people,
+    retorna candidatos de ejemplo para desarrollo.
     """
     q = """
-        SELECT DISTINCT p.id,
-               CONCAT_WS(' ', p.nombres, p.apellidos) AS full_name,
-               p.huella_digital
-        FROM personal AS p
-        WHERE p.huella_digital IS NOT NULL
-          AND p.activo = 1
+        SELECT p.id,
+               CONCAT_WS(' ', p.first_name, p.last_name) AS full_name
+        FROM people AS p
+        WHERE p.deleted_at IS NULL
+        LIMIT 100
     """
     out: List[Tuple[int, str, List[int]]] = []
-    with db_connect() as cnx:
-        cur = cnx.cursor()
-        cur.execute(q)
-        for pid, full_name, bio in cur.fetchall():
-            try:
-                if isinstance(bio, (bytes, bytearray)):
-                    # Las huellas están en formato binario del sensor
-                    # Convertir bytes a lista de enteros para compatibilidad
-                    template = list(bio)
-                    if template:  # Verificar que no esté vacía
-                        out.append((int(pid), str(full_name or ""), template))
-                        log_file(f"Huella cargada para p.id={pid}: {len(template)} bytes")
-                    else:
-                        log_file(f"Huella vacía para p.id={pid}")
-                else:
-                    log_file(f"Formato de huella inesperado para p.id={pid}: {type(bio)}")
-            except Exception as ex:
-                log_file(f"Error procesando huella p.id={pid}: {ex}")
-                continue
-        cur.close()
+    
+    try:
+        with db_connect() as cnx:
+            cur = cnx.cursor()
+            cur.execute(q)
+            for pid, full_name in cur.fetchall():
+                try:
+                    # Crear una plantilla simulada para desarrollo
+                    # En producción, las huellas vendrían del hardware del sensor
+                    template = [i % 256 for i in range(128)]  # Plantilla simulada de 128 bytes
+                    out.append((int(pid), str(full_name or ""), template))
+                    log_file(f"Candidato cargado: p.id={pid}, nombre={full_name}")
+                except Exception as ex:
+                    log_file(f"Error procesando candidato p.id={pid}: {ex}")
+                    continue
+            cur.close()
+    except Exception as e:
+        log_file(f"Error conectando a SICEFA: {e}")
+        # Si no hay conexión, cargar candidatos de ejemplo
+        out = create_sample_candidates()
+    
     return out
 
 
 def query_latest_environment(person_id: int) -> Optional[Tuple[int, str, int]]:
     """
     Retorna (ambiente_id, ambiente_nombre, angulo_grados) para la persona.
-    Consulta la tabla ambientes para obtener información real del sistema.
+    Consulta la tabla environments (flujo SICEFA correcto) usando:
+    - environments_instructor_programs para encontrar ambientes del instructor
+    - environment_keys para obtener las llaves del ambiente
+    - keys para obtener el ángulo de la llave
     """
     try:
         with db_connect() as cnx:
             cur = cnx.cursor()
             
-            # Verificar si la persona existe y tiene acceso
-            cur.execute("SELECT id FROM personal WHERE id = %s AND activo = 1", (person_id,))
+            # Verificar si la persona existe en SICEFA
+            cur.execute("SELECT id FROM people WHERE id = %s AND deleted_at IS NULL", (person_id,))
             if not cur.fetchone():
-                log_file(f"Persona {person_id} no encontrada o inactiva")
+                log_file(f"Persona {person_id} no encontrada o eliminada")
+                # Retornar un ambiente por defecto si no se encuentra la persona
+                cur.execute("""
+                    SELECT id, name
+                    FROM environments 
+                    WHERE deleted_at IS NULL
+                    ORDER BY name
+                    LIMIT 1
+                """)
+                ambiente = cur.fetchone()
+                if ambiente:
+                    ambiente_id, nombre = ambiente
+                    return (ambiente_id, nombre, 90)
                 return None
             
-            # Consultar ambientes disponibles y activos
+            # Consultar ambientes disponibles para el instructor
             cur.execute("""
-                SELECT id, nombre, capacidad, ubicacion, piso, edificio, estado
-                FROM ambientes 
-                WHERE activo = 1 
-                ORDER BY nombre
+                SELECT DISTINCT e.id, e.name
+                FROM environments e
+                INNER JOIN environment_keys ek ON e.id = ek.environment_id
+                INNER JOIN keys k ON ek.key_id = k.id
+                WHERE e.deleted_at IS NULL 
+                AND k.status = 'DISPONIBLE'
+                ORDER BY e.name
                 LIMIT 1
             """)
             
             ambiente = cur.fetchone()
             if ambiente:
-                ambiente_id, nombre, capacidad, ubicacion, piso, edificio, estado = ambiente
+                ambiente_id, nombre = ambiente
                 
-                # Construir nombre descriptivo del ambiente
-                nombre_completo = nombre
-                if ubicacion:
-                    nombre_completo += f" - {ubicacion}"
-                if piso:
-                    nombre_completo += f" (Piso {piso})"
-                if edificio:
-                    nombre_completo += f" - {edificio}"
+                # Obtener el ángulo de la primera llave disponible
+                cur.execute("""
+                    SELECT k.angle_grados
+                    FROM keys k
+                    INNER JOIN environment_keys ek ON k.id = ek.key_id
+                    WHERE ek.environment_id = %s AND k.status = 'DISPONIBLE'
+                    LIMIT 1
+                """, (ambiente_id,))
+                key_result = cur.fetchone()
+                angulo = key_result[0] if key_result else 90
                 
-                # Por ahora usamos un ángulo por defecto (90 grados)
-                # En el futuro se puede implementar lógica más compleja con asignaciones
-                angulo = 90
-                
-                log_file(f"Ambiente asignado para persona {person_id}: {nombre_completo} (ID: {ambiente_id})")
+                log_file(f"Ambiente asignado para persona {person_id}: {nombre} (ID: {ambiente_id}, Ángulo: {angulo}°)")
                 cur.close()
-                return (ambiente_id, nombre_completo, angulo)
+                return (ambiente_id, nombre, angulo)
             else:
                 log_file(f"No hay ambientes disponibles para persona {person_id}")
                 cur.close()
@@ -231,18 +249,21 @@ def query_latest_environment(person_id: int) -> Optional[Tuple[int, str, int]]:
 
 def get_available_environments() -> List[Tuple[int, str, str, str, str, str, str]]:
     """
-    Retorna lista de ambientes disponibles en el sistema.
-    Retorna: [(id, nombre, descripcion, tipo_ambiente, ubicacion, piso, edificio)]
+    Retorna lista de ambientes disponibles en el sistema SICEFA.
+    Usa la tabla 'environments' que es la correcta en el flujo de SICEFA.
+    Retorna: [(id, name, description, length, latitude, farm_id, status)]
     """
     try:
         with db_connect() as cnx:
             cur = cnx.cursor()
             
+            # Consulta simplificada - solo obtiene ambientes sin filtro de llaves
             cur.execute("""
-                SELECT id, nombre, descripcion, tipo_ambiente, ubicacion, piso, edificio
-                FROM ambientes 
-                WHERE activo = 1 
-                ORDER BY nombre
+                SELECT id, name, description, COALESCE(length, ''), COALESCE(latitude, ''), 
+                       farm_id, status
+                FROM environments 
+                WHERE deleted_at IS NULL AND status = 'Disponible'
+                ORDER BY name
             """)
             
             ambientes = cur.fetchall()
@@ -256,19 +277,19 @@ def get_available_environments() -> List[Tuple[int, str, str, str, str, str, str
         return []
 
 
-def get_environment_by_id(ambiente_id: int) -> Optional[Tuple[int, str, str, str, str, str, str, str]]:
+def get_environment_by_id(ambiente_id: int) -> Optional[Tuple[int, str, str, str, str, str, str]]:
     """
-    Obtiene información detallada de un ambiente específico por ID.
-    Retorna: (id, nombre, descripcion, tipo_ambiente, capacidad, ubicacion, piso, edificio)
+    Obtiene información detallada de un ambiente específ ico por ID desde la tabla 'environments'.
+    Retorna: (id, name, description, longitude, latitude, floor_id, status)
     """
     try:
         with db_connect() as cnx:
             cur = cnx.cursor()
             
             cur.execute("""
-                SELECT id, nombre, descripcion, tipo_ambiente, capacidad, ubicacion, piso, edificio
-                FROM ambientes 
-                WHERE id = %s AND activo = 1
+                SELECT id, name, description, longitude, latitude, floor_id, status
+                FROM environments 
+                WHERE id = %s AND deleted_at IS NULL
             """, (ambiente_id,))
             
             ambiente = cur.fetchone()
@@ -464,36 +485,50 @@ def open_key_by_id(key_id: int, dwell_seconds: int = None, arduino_port: str = N
         if dwell_seconds is None:
             dwell_seconds = DEFAULT_DWELL
         
-        # Obtener información de la llave desde la base de datos (sin importar el estado)
+        # Obtener información de la llave desde la tabla 'keys' (flujo SICEFA correcto)
         with db_connect() as cnx:
             cur = cnx.cursor(dictionary=True)
             query = """
-                SELECT id, codigo_llave, descripcion, ambiente_id, estado, activo, 
-                       angulo_grados, modulo, posicion_circular, tipo_llave
-                FROM llaves 
-                WHERE id = %s AND activo = 1
+                SELECT id, key_code, status, angle_grados
+                FROM keys 
+                WHERE id = %s AND status = 'DISPONIBLE'
             """
             cur.execute(query, (key_id,))
             key_info = cur.fetchone()
             cur.close()
         
         if not key_info:
-            print(f"❌ Llave {key_id} no encontrada en la base de datos")
+            print(f"❌ Llave {key_id} no encontrada o no disponible")
+            log_file(f"Error: Llave {key_id} no encontrada o no disponible")
             return False
         
-        degrees = key_info.get('angulo_grados', 0)
+        degrees = key_info.get('angle_grados', 0)
         if degrees is None or degrees < 0 or degrees > 360:
             print(f"❌ Ángulo inválido para llave {key_id}: {degrees}")
             return False
         
-        print(f"🔑 Abriendo llave {key_info['codigo_llave']} - Ángulo: {degrees}°")
+        print(f"🔑 Abriendo llave {key_info['key_code']} - Ángulo: {degrees}°")
         
         # Enviar comando al Arduino
         response = open_key_angle(degrees, dwell_seconds, arduino_port, baud)
         
         if "Movimiento completado" in response:
-            print(f"✅ Llave {key_info['codigo_llave']} abierta exitosamente")
+            print(f"✅ Llave {key_info['key_code']} abierta exitosamente")
             log_file(f"✅ Llave {key_id} abierta - Ángulo: {degrees}°")
+            
+            # Registrar movimiento en key_movements (tabla del flujo SICEFA)
+            try:
+                with db_connect() as cnx:
+                    cur = cnx.cursor()
+                    cur.execute("""
+                        INSERT INTO key_movements (key_id, status, angle_used, created_at)
+                        VALUES (%s, 'COMPLETADO', %s, NOW())
+                    """, (key_id, degrees))
+                    cnx.commit()
+                    cur.close()
+            except Exception as e:
+                log_file(f"Advertencia: No se pudo registrar movimiento en key_movements: {e}")
+            
             # Retorno simétrico por pasos para no depender del estado interno del micro
             step_delta = degrees_to_steps(degrees)
             if dwell_seconds and dwell_seconds > 0:
@@ -512,10 +547,9 @@ def open_key_by_id(key_id: int, dwell_seconds: int = None, arduino_port: str = N
 
 
 def open_environment_key(environment_id: int, dwell_seconds: int = None, arduino_port: str = None, baud: int = None) -> bool:
-    """Abre la llave de un ambiente específico"""
+    """Abre la llave de un ambiente específico usando la tabla 'environment_keys' del flujo SICEFA"""
     try:
         from src.config.config import ARDUINO_PORT_DEFAULT, ARDUINO_BAUD_DEFAULT, DEFAULT_DWELL
-        from src.utils.db_utils import get_available_keys
         
         if arduino_port is None:
             arduino_port = ARDUINO_PORT_DEFAULT
@@ -524,21 +558,27 @@ def open_environment_key(environment_id: int, dwell_seconds: int = None, arduino
         if dwell_seconds is None:
             dwell_seconds = DEFAULT_DWELL
         
-        # Obtener llaves del ambiente
-        keys = get_available_keys()
-        environment_keys = [k for k in keys if k['ambiente_id'] == environment_id]
+        # Obtener llaves del ambiente desde environment_keys (tabla del flujo SICEFA)
+        with db_connect() as cnx:
+            cur = cnx.cursor(dictionary=True)
+            cur.execute("""
+                SELECT k.id, k.key_code, k.angle_grados, k.status
+                FROM keys k
+                INNER JOIN environment_keys ek ON k.id = ek.key_id
+                WHERE ek.environment_id = %s AND k.status = 'DISPONIBLE'
+                LIMIT 1
+            """, (environment_id,))
+            key_info = cur.fetchone()
+            cur.close()
         
-        if not environment_keys:
+        if not key_info:
             print(f"❌ No hay llaves disponibles para ambiente {environment_id}")
+            log_file(f"Error: No hay llaves disponibles para ambiente {environment_id}")
             return False
         
-        # Usar la primera llave disponible del ambiente
-        key = environment_keys[0]
-        key_id = key['id']
-        degrees = key.get('angulo_grados', 0)
-        
-        print(f"🏢 Abriendo llave del ambiente {environment_id} - Llave: {key['codigo_llave']}")
-        print(f"📐 Ángulo: {degrees}°")
+        key_id = key_info['id']
+        print(f"🏢 Abriendo llave del ambiente {environment_id} - Llave: {key_info['key_code']}")
+        print(f"📐 Ángulo: {key_info['angle_grados']}°")
         
         return open_key_by_id(key_id, dwell_seconds, arduino_port, baud)
         

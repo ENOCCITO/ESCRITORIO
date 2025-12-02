@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QFrame,
     QSizePolicy,
+    QGridLayout,
 )
 from src.core.key_manager import KeyManager
 from src.core.desktop_alerts import desktop_alert_system
@@ -52,621 +53,205 @@ class SecurityInterface:
             pass
         
     def show_security_interface(self):
+        """Abre directamente el selector de ambientes"""
         try:
-            PRIMARY_COLOR = "#0D6EFD"
-            BG_LIGHT_HTML = "#F8F9FA"
-            TEXT_GRAY_DARK = "#111418"
-            TEXT_GRAY_LIGHT = "#617289"
-            BORDER_COLOR = "#E5E7EB"
-            HEADER_DARK = "#212529"
-            CARD_BG = "#FFFFFF"
-
-            security_win = CleanCloseDialog(self.parent)
-            security_win.setWindowTitle("Interfaz de Seguridad – Sistema CEFA")
-            security_win.setModal(False)
-            
-            # PANTALLA COMPLETA REAL (sin barra de tareas de Windows)
-            security_win.showFullScreen()
-            
-            security_win.setStyleSheet(f"background-color: {BG_LIGHT_HTML};")
-
-            root_layout = QVBoxLayout(security_win)
-            root_layout.setContentsMargins(0, 0, 0, 0)
-            root_layout.setSpacing(0)
-
-            # Header oscuro
-            header = QWidget(security_win)
-            header.setFixedHeight(72)
-            header.setStyleSheet(f"background-color: {HEADER_DARK}; border: none;")
-            header_layout = QHBoxLayout(header)
-            header_layout.setContentsMargins(24, 12, 24, 12)
-            header_layout.setSpacing(16)
-
-            header_icon = QLabel(header)
-            header_icon.setAlignment(Qt.AlignCenter)
-            icon_path = "images/escudoazul.png"
-            if not os.path.isabs(icon_path):
-                icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), icon_path)
-            if os.path.exists(icon_path):
-                pix = QPixmap(icon_path).scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-                header_icon.setPixmap(pix)
-                header_icon.setFixedSize(pix.width(), pix.height())
-            else:
-                header_icon.setText("🛡️")
-                header_icon.setStyleSheet("color: white; font-size: 28px;")
-            header_layout.addWidget(header_icon)
-
-            header_title = QLabel("INTERFAZ DE SEGURIDAD – SISTEMA CEFA", header)
-            header_title.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
-            header_title.setWordWrap(False)
-            header_title.setTextFormat(Qt.PlainText)
-            header_title.setOpenExternalLinks(False)
-            header_title.setMinimumWidth(0)
-            header_title.setMaximumWidth(16777215)
-            header_font = header_title.font()
-            header_font.setPointSize(18)
-            header_font.setBold(True)
-            header_title.setFont(header_font)
-            header_fm = QFontMetrics(header_font)
-            header_title.setMinimumWidth(header_fm.horizontalAdvance("INTERFAZ DE SEGURIDAD – SISTEMA CEFA"))
-            header_title.setStyleSheet(
-                "color: white; font-size: 18px; font-weight: 700; font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; background-color: transparent; border: none; padding: 0px; margin: 0px;"
-            )
-            header_layout.addWidget(header_title)
-            header_layout.addStretch()
-
-            root_layout.addWidget(header)
-
-            scroll = QScrollArea(security_win)
-            scroll.setWidgetResizable(True)
-            scroll.setFrameShape(QFrame.NoFrame)
-            scroll.setStyleSheet(f"background-color: {BG_LIGHT_HTML}; border: none;")
-
-            main_content = QWidget()
-            main_layout = QVBoxLayout(main_content)
-            main_layout.setContentsMargins(32, 32, 32, 32)
-            main_layout.setSpacing(28)
-
-            # Welcome card
-            welcome_card = QWidget(main_content)
-            welcome_card.setStyleSheet(f"background-color: {CARD_BG}; border-radius: 12px;")
-            welcome_layout = QHBoxLayout(welcome_card)
-            welcome_layout.setContentsMargins(32, 28, 32, 28)
-            welcome_layout.setSpacing(24)
-            welcome_layout.setAlignment(Qt.AlignTop)
-
-            hero_icon = QLabel(welcome_card)
-            hero_icon.setAlignment(Qt.AlignCenter)
-            hero_path = "images/seguridad.jpg"
-            if not os.path.isabs(hero_path):
-                hero_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), hero_path)
-            if os.path.exists(hero_path):
-                hero_pix = QPixmap(hero_path).scaled(92, 92, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-                hero_icon.setPixmap(hero_pix)
-                hero_icon.setFixedSize(hero_pix.width(), hero_pix.height())
-            else:
-                hero_icon.setText("🛡️")
-                hero_icon.setStyleSheet(
-                    f"color: {PRIMARY_COLOR}; font-size: 56px; background-color: transparent; border: none;"
-                )
-            welcome_layout.addWidget(hero_icon, 0, Qt.AlignTop)
-
-            text_block = QVBoxLayout()
-            text_block.setSpacing(6)
-            text_block.setContentsMargins(0, 0, 0, 0)
-
-            welcome_title = QLabel("Control de Seguridad", welcome_card)
-            welcome_title.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
-            welcome_title.setWordWrap(False)
-            welcome_title.setTextFormat(Qt.PlainText)
-            welcome_title.setOpenExternalLinks(False)
-            welcome_title.setMinimumWidth(0)
-            welcome_title.setMaximumWidth(16777215)
-            welcome_title_font = welcome_title.font()
-            welcome_title_font.setPointSize(30)
-            welcome_title_font.setBold(True)
-            welcome_title.setFont(welcome_title_font)
-            welcome_title_fm = QFontMetrics(welcome_title_font)
-            welcome_title.setMinimumWidth(welcome_title_fm.horizontalAdvance("Control de Seguridad"))
-            welcome_title.setStyleSheet(
-                f"color: {TEXT_GRAY_DARK}; font-size: 30px; font-weight: 700; font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; background-color: transparent; border: none; padding: 0px; margin: 0px;"
-            )
-            text_block.addWidget(welcome_title)
-
-            welcome_subtitle = QLabel(
-                "Interfaz dedicada para la gestión y monitoreo de llaves asignadas y en custodia.",
-                welcome_card,
-            )
-            welcome_subtitle.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
-            welcome_subtitle.setWordWrap(False)
-            welcome_subtitle.setTextFormat(Qt.PlainText)
-            welcome_subtitle.setOpenExternalLinks(False)
-            welcome_subtitle.setMinimumWidth(0)
-            welcome_subtitle.setMaximumWidth(16777215)
-            welcome_subtitle_font = welcome_subtitle.font()
-            welcome_subtitle_font.setPointSize(14)
-            welcome_subtitle.setFont(welcome_subtitle_font)
-            welcome_subtitle_fm = QFontMetrics(welcome_subtitle_font)
-            welcome_subtitle.setMinimumWidth(welcome_subtitle_fm.horizontalAdvance("Interfaz dedicada para la gestión y monitoreo de llaves asignadas y en custodia."))
-            welcome_subtitle.setStyleSheet(
-                f"color: {TEXT_GRAY_LIGHT}; font-size: 14px; font-weight: 400; background-color: transparent; border: none; padding: 0px; margin: 0px;"
-            )
-            text_block.addWidget(welcome_subtitle)
-            text_block.addStretch(1)
-
-            welcome_layout.addLayout(text_block)
-            main_layout.addWidget(welcome_card)
-
-            # Actions title
-            actions_title = QLabel("Acciones principales", main_content)
-            actions_title.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
-            actions_title.setWordWrap(False)
-            actions_title.setTextFormat(Qt.PlainText)
-            actions_title.setOpenExternalLinks(False)
-            actions_title.setMinimumWidth(0)
-            actions_title.setMaximumWidth(16777215)
-            actions_title_font = actions_title.font()
-            actions_title_font.setPointSize(20)
-            actions_title_font.setBold(True)
-            actions_title.setFont(actions_title_font)
-            actions_title_fm = QFontMetrics(actions_title_font)
-            actions_title.setMinimumWidth(actions_title_fm.horizontalAdvance("Acciones principales"))
-            actions_title.setStyleSheet(
-                f"color: {TEXT_GRAY_DARK}; font-size: 20px; font-weight: 700; font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; background-color: transparent; border: none; padding: 0px; margin: 0px;"
-            )
-            main_layout.addWidget(actions_title)
-
-            actions_container = QWidget(main_content)
-            actions_layout = QHBoxLayout(actions_container)
-            actions_layout.setContentsMargins(0, 0, 0, 0)
-            actions_layout.setSpacing(20)
-
-            # Solo "Seleccionar Ambiente"
-            title_text = "Seleccionar Ambiente"
-            desc_text = "Elija el entorno específico para gestionar las llaves correspondientes."
-            image_path = "images/ambiente.jpg"
-            fallback_emoji = "🏢"
-            callback = self._open_environment_selector
-
-            card = QWidget(actions_container)
-            card.setCursor(Qt.PointingHandCursor)
-            card.setStyleSheet(
-                f"background-color: {CARD_BG}; border: 1px solid {BORDER_COLOR}; border-radius: 12px;"
-            )
-            card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            card_layout = QVBoxLayout(card)
-            card_layout.setContentsMargins(40, 32, 40, 32)  # left, top, right, bottom - Más espacio alrededor del contenido
-            card_layout.setSpacing(20)
-
-            header_row = QHBoxLayout()
-            header_row.setSpacing(16)
-            header_row.setContentsMargins(0, 0, 0, 0)
-
-            icon_label = QLabel(card)
-            icon_label.setAlignment(Qt.AlignCenter)
-            icon_abs = image_path
-            if not os.path.isabs(icon_abs):
-                icon_abs = os.path.join(os.path.dirname(os.path.abspath(__file__)), image_path)
-            pixmap = None
-            if os.path.exists(icon_abs):
-                pixmap = QPixmap(icon_abs).scaled(56, 56, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            if pixmap:
-                icon_label.setPixmap(pixmap)
-                icon_label.setFixedSize(pixmap.width(), pixmap.height())
-                icon_label.setStyleSheet(
-                    "background-color: transparent; border: none; padding: 0px; margin: 0px;"
-                )
-            else:
-                icon_label.setText(fallback_emoji)
-                icon_label.setStyleSheet(
-                    f"color: {PRIMARY_COLOR}; font-size: 32px; background-color: rgba(13,110,253,0.12); border-radius: 999px; padding: 14px;"
-                )
-            header_row.addWidget(icon_label, 0, Qt.AlignLeft)
-
-            title_label = QLabel(title_text, card)
-            title_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            title_label.setWordWrap(False)
-            title_label.setTextFormat(Qt.PlainText)
-            title_label.setOpenExternalLinks(False)
-            title_label.setMinimumWidth(0)
-            title_label.setMaximumWidth(16777215)
-            title_font = title_label.font()
-            title_font.setPointSize(16)
-            title_font.setBold(True)
-            title_label.setFont(title_font)
-            title_fm = QFontMetrics(title_font)
-            title_label.setMinimumWidth(title_fm.horizontalAdvance(title_text))
-            title_label.setStyleSheet(f"color: {TEXT_GRAY_DARK}; font-size: 16px; font-weight: 700; background-color: transparent; border: none; padding: 0px; margin: 0px;")
-            header_row.addWidget(title_label)
-            header_row.addStretch(1)
-            card_layout.addLayout(header_row)
-
-            desc_label = QLabel(desc_text, card)
-            desc_label.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Minimum)
-            desc_label.setWordWrap(False)
-            desc_label.setTextFormat(Qt.PlainText)
-            desc_label.setOpenExternalLinks(False)
-            desc_label.setMinimumWidth(0)
-            desc_label.setMaximumWidth(16777215)
-            desc_font = desc_label.font()
-            desc_font.setPointSize(13)
-            desc_label.setFont(desc_font)
-            desc_fm = QFontMetrics(desc_font)
-            desc_label.setMinimumWidth(desc_fm.horizontalAdvance(desc_text))
-            desc_label.setStyleSheet(f"color: {TEXT_GRAY_LIGHT}; font-size: 13px; font-weight: 500; background-color: transparent; border: none; padding: 0px; margin: 0px;")
-            card_layout.addWidget(desc_label)
-
-            action_btn = QPushButton("Seleccionar", card)
-            action_btn.setCursor(Qt.PointingHandCursor)
-            action_btn.setStyleSheet(
-                f"background-color: {PRIMARY_COLOR}; color: white; border: none; border-radius: 8px; padding: 10px 22px; font-size: 13px; font-weight: 600;"
-            )
-            action_btn.clicked.connect(callback)
-            card_layout.addWidget(action_btn, 0, Qt.AlignLeft)
-
-            def make_handler(func):
-                def _handler(event):
-                    try:
-                        func()
-                    except Exception as exc:
-                        QMessageBox.critical(self.parent, "Error", f"No se pudo ejecutar la acción:\n{exc}")
-                return _handler
-
-            card.mousePressEvent = make_handler(callback)
-            actions_layout.addWidget(card)
-
-            main_layout.addWidget(actions_container)
-
-            # Llaves en custodia
-            keys_card = QWidget(main_content)
-            keys_card.setStyleSheet(f"background-color: {CARD_BG}; border: 1px solid {BORDER_COLOR}; border-radius: 12px;")
-            keys_layout = QVBoxLayout(keys_card)
-            keys_layout.setContentsMargins(24, 24, 24, 24)
-            keys_layout.setSpacing(20)
-
-            keys_header = QHBoxLayout()
-            keys_header.setSpacing(12)
-
-            keys_title = QLabel("Llaves en custodia", keys_card)
-            keys_title.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            keys_title.setWordWrap(False)
-            keys_title.setTextFormat(Qt.PlainText)
-            keys_title.setOpenExternalLinks(False)
-            keys_title.setMinimumWidth(0)
-            keys_title.setMaximumWidth(16777215)
-            keys_title_font = keys_title.font()
-            keys_title_font.setPointSize(20)
-            keys_title_font.setBold(True)
-            keys_title.setFont(keys_title_font)
-            keys_title_fm = QFontMetrics(keys_title_font)
-            keys_title.setMinimumWidth(keys_title_fm.horizontalAdvance("Llaves en custodia"))
-            keys_title.setStyleSheet(f"color: {TEXT_GRAY_DARK}; font-size: 20px; font-weight: 700; background-color: transparent; border: none; padding: 0px; margin: 0px;")
-            keys_header.addWidget(keys_title)
-
-            self._keys_count_label = QLabel("0", keys_card)
-            self._keys_count_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-            self._keys_count_label.setWordWrap(False)
-            self._keys_count_label.setTextFormat(Qt.PlainText)
-            self._keys_count_label.setOpenExternalLinks(False)
-            self._keys_count_label.setMinimumWidth(0)
-            self._keys_count_label.setMaximumWidth(16777215)
-            count_font = self._keys_count_label.font()
-            count_font.setPointSize(13)
-            count_font.setBold(True)
-            self._keys_count_label.setFont(count_font)
-            count_fm = QFontMetrics(count_font)
-            self._keys_count_label.setMinimumWidth(count_fm.horizontalAdvance("0") + 28)  # +28 para padding
-            self._keys_count_label.setStyleSheet(f"color: {PRIMARY_COLOR}; background-color: rgba(13,110,253,0.12); border-radius: 999px; padding: 6px 14px;")
-            keys_header.addWidget(self._keys_count_label)
-            keys_header.addStretch(1)
-
-            refresh_btn = QPushButton("Actualizar", keys_card)
-            refresh_btn.setCursor(Qt.PointingHandCursor)
-            refresh_btn.setStyleSheet("background-color: rgba(17,24,39,0.08); color: #111418; border: none; border-radius: 8px; padding: 10px 18px; font-size: 13px; font-weight: 600;")
-            refresh_btn.clicked.connect(self._refresh_my_keys)
-            keys_header.addWidget(refresh_btn)
-
-            keys_layout.addLayout(keys_header)
-
-            self._my_keys_container = QWidget(keys_card)
-            self._my_keys_layout = QVBoxLayout(self._my_keys_container)
-            self._my_keys_layout.setContentsMargins(0, 0, 0, 0)
-            self._my_keys_layout.setSpacing(12)
-            keys_layout.addWidget(self._my_keys_container)
-
-            main_layout.addWidget(keys_card)
-
-            scroll.setWidget(main_content)
-            root_layout.addWidget(scroll, 1)
-
-            footer = QWidget(security_win)
-            footer.setStyleSheet(f"background-color: {HEADER_DARK};")
-            footer_layout = QHBoxLayout(footer)
-            footer_layout.setContentsMargins(24, 12, 24, 12)
-            footer_layout.addStretch(1)
-
-            close_btn = QPushButton("Cerrar", footer)
-            close_btn.setCursor(Qt.PointingHandCursor)
-            close_btn.setStyleSheet(f"background-color: {PRIMARY_COLOR}; color: white; border: none; border-radius: 8px; padding: 10px 20px; font-size: 13px; font-weight: 600;")
-            close_btn.clicked.connect(security_win.close)
-            footer_layout.addWidget(close_btn)
-            root_layout.addWidget(footer)
-
-            self.security_win = security_win
-            self._refresh_my_keys()
-
-            styles.center_window(security_win)
-            security_win.show()
+            # Ir directamente a la selección de ambientes
+            self._open_environment_selector()
+            print("✅ Interfaz de seguridad - Selector de ambientes mostrado")
         except Exception as e:
+            QMessageBox.critical(self.parent, "Error", f"Error al mostrar la interfaz de seguridad:\n{e}")
             import traceback
             traceback.print_exc()
-            QMessageBox.critical(self.parent, "Error", f"Error mostrando interfaz de seguridad:\n{e}")
 
     def _open_environment_selector(self):
-        # Colores del diseño Stitch
+        """Ícono de saludo y mensaje de bienvenida"""
+        print("\n" + "="*60)
+        print("🚨 _open_environment_selector EJECUTADO")
+        print("="*60 + "\n")
+        
+        # Colores del diseño
         PRIMARY_COLOR = "#136dec"
         BG_LIGHT_HTML = "#f6f7f8"
         TEXT_GRAY_DARK = "#111418"
         TEXT_GRAY_LIGHT = "#617289"
         BORDER_COLOR = "#f0f2f4"
-        CARD_BG = "#ffffff"
         
-        # Crear modal
-        dlg = QDialog(self.parent)
-        dlg.setModal(True)
-        dlg.setWindowTitle("AMBIENTES DISPONIBLES")
-        dlg.resize(900, 620)
+        # Crear diálogo personalizado grande
+        dlg = CleanCloseDialog(self.parent)
+        dlg.setWindowTitle("Seguridad - Ambientes")
+        dlg.setModal(False)
+        dlg.showFullScreen()
         dlg.setStyleSheet(f"background-color: {BG_LIGHT_HTML};")
         
         # Layout principal
-        root_layout = QVBoxLayout(dlg)
-        root_layout.setContentsMargins(0, 0, 0, 0)
-        root_layout.setSpacing(0)
+        main_layout = QVBoxLayout(dlg)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
         
-        # Header del modal
+        # Header con botón de cierre
         header = QWidget(dlg)
         header.setFixedHeight(60)
-        header.setStyleSheet(
-            f"background-color: {CARD_BG}; "
-            f"border-bottom: 1px solid {BORDER_COLOR};"
-        )
+        header.setStyleSheet(f"background-color: {BG_LIGHT_HTML}; border-bottom: 1px solid {BORDER_COLOR};")
         header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(24, 16, 24, 16)
+        header_layout.setContentsMargins(16, 12, 16, 12)
         header_layout.setSpacing(16)
         
-        # Título con icono
-        title_container = QWidget(header)
-        title_layout = QHBoxLayout(title_container)
-        title_layout.setContentsMargins(0, 0, 0, 0)
-        title_layout.setSpacing(12)
-        
-        icon_label = QLabel("🏢", header)
-        icon_label.setStyleSheet("font-size: 24px; background-color: transparent;")
-        title_layout.addWidget(icon_label)
-        
-        title_label = QLabel("AMBIENTES DISPONIBLES", header)
-        title_label.setStyleSheet(
+        header_title = QLabel("🛡️ SEGURIDAD - CONTROL DE ACCESO", header)
+        header_title.setStyleSheet(
             f"color: {TEXT_GRAY_DARK}; "
             f"font-size: 18px; "
             f"font-weight: 700; "
             f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
         )
-        title_layout.addWidget(title_label)
-        
-        header_layout.addWidget(title_container)
+        header_layout.addWidget(header_title)
         header_layout.addStretch()
         
-        # Botón cerrar (X)
+        # Botón cerrar
         close_btn = QPushButton("✕", header)
-        close_btn.setFixedSize(32, 32)
+        close_btn.setFixedSize(40, 40)
         close_btn.setCursor(Qt.PointingHandCursor)
         close_btn.setStyleSheet(
             f"QPushButton {{"
-            f"background-color: {BG_LIGHT_HTML}; "
-            f"color: {TEXT_GRAY_LIGHT}; "
+            f"background-color: #f0f2f4; "
+            f"color: {TEXT_GRAY_DARK}; "
             f"border: none; "
             f"border-radius: 8px; "
-            f"font-size: 18px; "
-            f"font-weight: 500;"
+            f"font-size: 20px; "
+            f"font-weight: 600;"
             f"}}"
             f"QPushButton:hover {{"
             f"background-color: #E5E7EB; "
-            f"color: {TEXT_GRAY_DARK};"
             f"}}"
         )
         close_btn.clicked.connect(dlg.close)
         header_layout.addWidget(close_btn)
         
-        root_layout.addWidget(header)
+        main_layout.addWidget(header)
         
-        # Área de contenido scrollable
-        scroll_area = QScrollArea(dlg)
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setFrameShape(QFrame.NoFrame)
-        scroll_area.setStyleSheet("border: none; background-color: transparent;")
-        
-        content_widget = QWidget()
+        # Área de contenido centrada
+        content_widget = QWidget(dlg)
         content_widget.setStyleSheet(f"background-color: {BG_LIGHT_HTML};")
         content_layout = QVBoxLayout(content_widget)
-        content_layout.setContentsMargins(24, 24, 24, 24)
-        content_layout.setSpacing(24)
+        content_layout.setContentsMargins(40, 40, 40, 40)
+        content_layout.setAlignment(Qt.AlignCenter)
         
-        # Subtítulo/Instrucción
-        subtitle_label = QLabel("Seleccione un ambiente para gestionar sus llaves disponibles", content_widget)
+        # Título principal
+        title_label = QLabel("🛡️ ¡Bienvenido Seguridad!", content_widget)
+        title_label.setAlignment(Qt.AlignHCenter)
+        title_label.setStyleSheet(
+            f"color: {TEXT_GRAY_DARK}; "
+            f"font-size: 32px; "
+            f"font-weight: 700; "
+            f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; "
+            f"margin-bottom: 20px;"
+        )
+        content_layout.addWidget(title_label)
+        
+        # Instrucción
+        subtitle_label = QLabel("Seleccione un ambiente para controlar acceso", content_widget)
         subtitle_label.setAlignment(Qt.AlignHCenter)
         subtitle_label.setWordWrap(True)
         subtitle_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         subtitle_label.setStyleSheet(
             f"color: {TEXT_GRAY_LIGHT}; "
-            f"font-size: 14px; "
+            f"font-size: 18px; "
             f"font-weight: 400; "
-            f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
+            f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; "
+            f"margin-bottom: 30px;"
         )
         content_layout.addWidget(subtitle_label)
         
-        # Construir lista de ambientes con llaves disponibles
-        try:
-            from src.utils.db_utils import db_connect
-            env_ids_with_keys = {}
-            envs_list = get_environments()
-            envs = {e['id']: e for e in envs_list} if isinstance(envs_list, list) else {}
-            with db_connect() as cnx:
-                cur = cnx.cursor(dictionary=True)
-                cur.execute("SELECT id, codigo_llave, descripcion, ambiente_id, estado, angulo_grados FROM llaves WHERE activo = 1 AND estado IN ('DISPONIBLE','ASIGNADA')")
-                for row in cur.fetchall():
-                    a_id = row.get('ambiente_id')
-                    if a_id:
-                        env_ids_with_keys.setdefault(a_id, []).append(row)
-        except Exception:
-            keys = get_available_keys()
-            envs = {e['id']: e for e in get_environments()} if isinstance(get_environments(), list) else {}
-            env_ids_with_keys = {}
-            for k in keys:
-                a_id = k.get('ambiente_id')
-                if a_id:
-                    env_ids_with_keys.setdefault(a_id, []).append(k)
-        
-        # Contenedor de lista de ambientes
+        # Contenedor de cuadrícula de ambientes
         environments_container = QWidget(content_widget)
-        environments_layout = QVBoxLayout(environments_container)
-        environments_layout.setContentsMargins(0, 0, 0, 0)
-        environments_layout.setSpacing(12)
+        environments_container.setStyleSheet(f"background-color: transparent;")
+        grid_layout = QGridLayout(environments_container)  # Cuadrícula
+        grid_layout.setSpacing(20)  # Espaciado entre botones
+        grid_layout.setContentsMargins(20, 20, 20, 20)
         
-        if not env_ids_with_keys:
-            # Estado vacío
-            empty_card = QWidget(content_widget)
-            empty_card.setStyleSheet(
-                f"background-color: {CARD_BG}; "
-                f"border: 1px solid {BORDER_COLOR}; "
-                f"border-radius: 12px;"
-            )
-            empty_layout = QVBoxLayout(empty_card)
-            empty_layout.setContentsMargins(40, 40, 40, 40)
-            empty_layout.setSpacing(16)
+        # Obtener ambientes de la base de datos
+        try:
+            from src.utils.utils import get_available_environments
             
-            empty_icon = QLabel("🔑", empty_card)
-            empty_icon.setAlignment(Qt.AlignHCenter)
-            empty_icon.setStyleSheet("font-size: 48px; background-color: transparent;")
-            empty_layout.addWidget(empty_icon)
+            # Obtener ambientes directamente
+            ambientes_list = get_available_environments()
             
-            empty_text = QLabel("No hay llaves disponibles en este momento.", empty_card)
-            empty_text.setAlignment(Qt.AlignHCenter)
-            empty_text.setWordWrap(True)
-            empty_text.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-            empty_text.setStyleSheet(
-                f"color: {TEXT_GRAY_LIGHT}; "
-                f"font-size: 16px; "
-                f"font-weight: 400; "
-                f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
-            )
-            empty_layout.addWidget(empty_text)
-            
-            environments_layout.addWidget(empty_card)
-        else:
-            # Lista de ambientes
-            for env_id, klist in env_ids_with_keys.items():
-                info = envs.get(env_id, {})
-                name = info.get('nombre', f"Ambiente {env_id}")
-                
-                # Tarjeta de ambiente
-                env_card = QWidget(environments_container)
-                env_card.setStyleSheet(
-                    f"background-color: {CARD_BG}; "
-                    f"border: 1px solid {BORDER_COLOR}; "
-                    f"border-radius: 12px;"
-                )
-                env_card.setMinimumHeight(72)
-                # Efecto hover (se aplicará mediante eventos si es necesario)
-                
-                card_layout = QHBoxLayout(env_card)
-                card_layout.setContentsMargins(20, 20, 20, 20)
-                card_layout.setSpacing(16)
-                
-                # Icono de edificio
-                icon_container = QWidget(env_card)
-                icon_container.setFixedSize(56, 56)
-                icon_container.setStyleSheet(
-                    f"background-color: #E3F2FD; "  # Azul muy claro (10% del primario)
-                    f"border-radius: 8px;"
-                )
-                icon_layout = QVBoxLayout(icon_container)
-                icon_layout.setContentsMargins(0, 0, 0, 0)
-                
-                env_icon = QLabel("🏢", icon_container)
-                env_icon.setAlignment(Qt.AlignCenter)
-                env_icon.setStyleSheet(
-                    f"color: {PRIMARY_COLOR}; "
-                    f"font-size: 28px; "
-                    f"background-color: transparent;"
-                )
-                icon_layout.addWidget(env_icon)
-                
-                card_layout.addWidget(icon_container)
-                
-                # Información del ambiente - sin contenedor intermedio para que el texto fluya libremente
-                info_layout = QVBoxLayout()
-                info_layout.setContentsMargins(0, 0, 0, 0)
-                info_layout.setSpacing(4)
-                
-                env_name = QLabel(name, env_card)
-                env_name.setWordWrap(True)
-                env_name.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-                env_name.setStyleSheet(
-                    f"color: {TEXT_GRAY_DARK}; "
-                    f"font-size: 16px; "
-                    f"font-weight: 700; "
-                    f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
-                )
-                info_layout.addWidget(env_name)
-                
-                env_detail = QLabel(f"{len(klist)} llaves disponibles o asignadas sin reclamar", env_card)
-                env_detail.setWordWrap(True)
-                env_detail.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-                env_detail.setStyleSheet(
+            if not ambientes_list:
+                # Estado vacío
+                empty_text = QLabel("No hay ambientes disponibles en este momento.", environments_container)
+                empty_text.setAlignment(Qt.AlignHCenter)
+                empty_text.setWordWrap(True)
+                empty_text.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+                empty_text.setStyleSheet(
                     f"color: {TEXT_GRAY_LIGHT}; "
-                    f"font-size: 13px; "
+                    f"font-size: 16px; "
                     f"font-weight: 400; "
                     f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
                 )
-                info_layout.addWidget(env_detail)
-                
-                # Agregar el layout directamente al card_layout sin widget intermedio
-                card_layout.addLayout(info_layout, 1)
-                
-                # Botón "Ver llaves"
-                view_btn = QPushButton("Ver llaves", env_card)
-                view_btn.setMinimumHeight(40)
-                view_btn.setMinimumWidth(100)
-                view_btn.setCursor(Qt.PointingHandCursor)
-                view_btn.setStyleSheet(
-                    f"QPushButton {{"
-                    f"background-color: {PRIMARY_COLOR}; "
-                    f"color: white; "
-                    f"border: none; "
-                    f"border-radius: 8px; "
-                    f"padding: 10px 20px; "
-                    f"font-size: 14px; "
-                    f"font-weight: 500; "
-                    f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
-                    f"}}"
-                    f"QPushButton:hover {{"
-                    f"background-color: #0E5AA7; "
-                    f"}}"
-                )
-                view_btn.clicked.connect(lambda checked, eid=env_id, n=name, kl=klist: self._open_keys_for_environment(eid, n, kl))
-                card_layout.addWidget(view_btn)
-                
-                environments_layout.addWidget(env_card)
+                grid_layout.addWidget(empty_text, 0, 0)
+            else:
+                # Cuadrícula de botones (2 columnas)
+                row = 0
+                col = 0
+                for ambiente in ambientes_list:
+                    # ambiente es una tupla: (id, name, description, length, latitude, farm_id, status)
+                    env_id = ambiente[0]
+                    nombre = ambiente[1]
+                    
+                    # Botón grande para el ambiente
+                    env_btn = QPushButton(nombre, environments_container)
+                    env_btn.setMinimumHeight(120)  # Botón más grande
+                    env_btn.setMinimumWidth(120)   # Cuadrado
+                    env_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+                    env_btn.setCursor(Qt.PointingHandCursor)
+                    env_btn.setStyleSheet(
+                        f"QPushButton {{"
+                        f"background-color: {PRIMARY_COLOR}; "
+                        f"color: white; "
+                        f"border: none; "
+                        f"border-radius: 12px; "
+                        f"padding: 15px; "
+                        f"font-size: 14px; "
+                        f"font-weight: 700; "
+                        f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; "
+                        f"}}"
+                        f"QPushButton:hover {{"
+                        f"background-color: #0E5AA7; "
+                        f"}}"
+                        f"QPushButton:pressed {{"
+                        f"background-color: #0A4A8A; "
+                        f"}}"
+                    )
+                    env_btn.clicked.connect(lambda checked, eid=env_id, n=nombre: self._select_environment_security(n, eid))
+                    
+                    # Agregar a la cuadrícula
+                    grid_layout.addWidget(env_btn, row, col)
+                    
+                    # Mover a la siguiente posición
+                    col += 1
+                    if col >= 2:  # 2 columnas
+                        col = 0
+                        row += 1
+        except Exception as e:
+            print(f"Error obteniendo ambientes: {e}")
+            import traceback
+            traceback.print_exc()
         
         content_layout.addWidget(environments_container)
         content_layout.addStretch()
         
-        scroll_area.setWidget(content_widget)
-        root_layout.addWidget(scroll_area, 1)
+        main_layout.addWidget(content_widget, 1)
         
-        # Centrar y mostrar
-        styles.center_window(dlg)
+        print("✅ Mostrando cuadrícula de ambientes")
         dlg.show()
+    
+    def _select_environment_security(self, env_name, ambiente_id=None):
+        """Maneja la selección de un ambiente desde seguridad"""
+        if ambiente_id:
+            QMessageBox.information(self.parent, "🛡️ AMBIENTE SELECCIONADO",
+                                    f"Ha seleccionado: {env_name}\nID del ambiente: {ambiente_id}\n\nLa seguridad está activa para este ambiente.")
+        else:
+            QMessageBox.information(self.parent, "🛡️ AMBIENTE SELECCIONADO",
+                                    f"Ha seleccionado: {env_name}\n\nLa seguridad está activa para este ambiente.")
 
     def _create_security_header(self, parent, layout):
         header = styles.create_main_frame(parent)

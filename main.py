@@ -140,6 +140,7 @@ class App(QWidget):
         self.working = False
         self.worker: Optional[threading.Thread] = None
         self.fingerprint_modal = None  # Referencia al modal de escaneo de huella
+        self._is_exiting = False  # Flag para prevenir recursion en cierre
 
         # Inicializar contadores y estadísticas
         self.operations_count = 0
@@ -433,32 +434,42 @@ class App(QWidget):
         try:
             print("🔄 Restaurando ventana principal...")
             
-            # Forzar restauración del estado normal primero
-            self.setWindowState(Qt.WindowNoState)
+            # Aplicación actual
+            app = QApplication.instance()
             
-            # Mostrar la ventana
+            # Cerrar/ocultar todas las ventanas secundarias
+            if app:
+                for widget in list(app.topLevelWidgets()):
+                    if widget != self:
+                        try:
+                            if isinstance(widget, QWidget) and widget.isVisible():
+                                widget.setWindowState(Qt.WindowMinimized)
+                                widget.hide()
+                                widget.close()
+                        except Exception as e:
+                            print(f"⚠️ Error cerrando widget: {e}")
+            
+            # Forzar que esta ventana esté en primer plano
+            self.setWindowState(Qt.WindowNoState)  # Restaurar de minimizado si aplica
+            
+            # Hacer visible primero en ventana normal
             self.show()
-            self.raise_()
-            self.activateWindow()
             
-            # Forzar pantalla completa con un retraso mayor
-            QTimer.singleShot(100, self._apply_fullscreen)
+            # Luego aplicar pantalla completa
+            self.showFullScreen()
+            self.raise_()  # Traer al frente
+            self.activateWindow()  # Activar
+            self.setFocus()  # Darle foco
             
-            print("✅ Ventana principal en pantalla completa")
-            log_file("🔄 Ventana principal restaurada en pantalla completa")
+            # Forzar repaint
+            self.update()
+            self.repaint()
+            
+            print("✅ Ventana principal visible - esperando huella")
+            log_file("🔄 Ventana principal restaurada y visible")
         except Exception as e:
             print(f"⚠️ Error restaurando ventana principal: {e}")
             log_file(f"⚠️ Error restaurando ventana principal: {e}")
-    
-    def _apply_fullscreen(self):
-        """Aplicar pantalla completa con un pequeño retraso para asegurar la restauración"""
-        try:
-            # Forzar restauración del estado normal primero
-            self.setWindowState(Qt.WindowNoState)
-            # Aplicar pantalla completa
-            self.showFullScreen()
-        except Exception as e:
-            print(f"⚠️ Error aplicando pantalla completa: {e}")
 
     def _restore_main_window(self):
         try:
@@ -486,36 +497,34 @@ class App(QWidget):
 
     def _auto_load_candidates(self):
         try:
-            print("🔄 Conectando a la base de datos sistema_llaves_v2...")
+            print("🔄 Conectando a la base de datos SICEFA...")
             try:
                 mysql, err = _import_mysql()
                 if not mysql:
                     raise Exception(f"MySQL no disponible: {err}")
                 connection = mysql.connect(**DB_CONFIG)
                 cursor = connection.cursor()
-                cursor.execute("SHOW TABLES LIKE 'personal'")
+                cursor.execute("SHOW TABLES LIKE 'people'")
                 if not cursor.fetchone():
-                    raise Exception("La tabla 'personal' no existe en la base de datos")
-                cursor.execute("SELECT COUNT(*) FROM personal WHERE activo = 1")
+                    raise Exception("La tabla 'people' no existe en la base de datos SICEFA")
+                cursor.execute("SELECT COUNT(*) FROM people WHERE deleted_at IS NULL")
                 total_people = cursor.fetchone()[0]
-                print(f"📊 Total de personas en la base de datos: {total_people}")
-                cursor.execute("SELECT COUNT(*) FROM personal WHERE huella_digital IS NOT NULL AND activo = 1")
-                biometric_people = cursor.fetchone()[0]
-                print(f"🔐 Personas con huella digital: {biometric_people}")
+                print(f"📊 Total de personas en SICEFA: {total_people}")
                 self.candidates = load_candidates_from_db()
                 if self.candidates:
-                    print(f"✅ {len(self.candidates)} candidatos cargados desde sistema_llaves_v2")
-                    self._set_status(f"🟢 {len(self.candidates)} CANDIDATOS CARGADOS DESDE SISTEMA_LLAVES_V2 - SISTEMA LISTO")
+                    print(f"✅ {len(self.candidates)} candidatos cargados desde SICEFA")
+                    self._set_status(f"🟢 {len(self.candidates)} CANDIDATOS CARGADOS DESDE SICEFA - SISTEMA LISTO")
                     for i, (pid, name, bio) in enumerate(self.candidates[:3]):
                         print(f"   {i+1}. ID: {pid}, Nombre: {name}, Bio: {len(bio) if bio else 0} bytes")
                 else:
-                    print("⚠️ No se encontraron candidatos con huella digital en sistema_llaves_v2")
-                    self._set_status("🟡 SIN CANDIDATOS BIOMÉTRICOS EN SISTEMA_LLAVES_V2")
+                    print("⚠️ No se encontraron candidatos en SICEFA")
+                    self._set_status("🟡 SIN CANDIDATOS EN SICEFA - Cargando candidatos de ejemplo")
+                    self._create_sample_candidates()
                 cursor.close()
                 connection.close()
             except Exception as db_error:
-                print(f"❌ Error conectando a sistema_llaves_v2: {db_error}")
-                self._set_status("🔴 ERROR CONECTANDO A SISTEMA_LLAVES_V2")
+                print(f"❌ Error conectando a SICEFA: {db_error}")
+                self._set_status("🔴 ERROR CONECTANDO A SICEFA")
                 print("🔄 Creando candidatos de ejemplo para desarrollo...")
                 self._create_sample_candidates()
         except Exception as e:
@@ -838,6 +847,34 @@ class App(QWidget):
         QMessageBox.information(self, "👤 ACCESO DE USUARIO",
                                 f"Usuario identificado: {name}\nID: {pid}\n\nAcceso limitado concedido.\nContacte al administrador para permisos adicionales.")
 
+    def show_admin_view(self):
+        """Método para mostrar directamente la vista de administrador"""
+        try:
+            print("👑 Accediendo directamente a la vista de administrador...")
+            from src.interfaces.admin_interface import AdminInterface
+            if not self.admin_interface:
+                self.admin_interface = AdminInterface(self)
+            self.admin_interface.show_admin_interface()
+        except Exception as e:
+            print(f"❌ Error al abrir la vista de administrador: {e}")
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(self, "Error", f"Error al abrir la vista de administrador:\n{e}")
+
+    def show_security_view(self):
+        """Muestra directamente la interfaz de seguridad sin necesidad de huella"""
+        try:
+            print("🛡️ Abriendo interfaz de seguridad directamente...")
+            from src.interfaces.security_interface import SecurityInterface
+            if not self.security_interface:
+                self.security_interface = SecurityInterface(self, None)
+            self.security_interface.show_security_interface()
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(self, "Error", f"Error abriendo seguridad:\n{e}")
+
     def cleanup(self):
         """Limpia recursos y detiene hilos antes de cerrar"""
         try:
@@ -873,42 +910,33 @@ class App(QWidget):
     
     def force_exit(self):
         """Forzar salida completa de la aplicación"""
-        try:
-            print("🛑 Forzando salida de la aplicación...")
-            # Limpiar recursos
-            self.cleanup()
-            
-            # Forzar cierre de la aplicación Qt
-            app = QApplication.instance()
-            if app:
-                app.quit()
-            
-            # Forzar salida del sistema
-            import sys
-            sys.exit(0)
-        except Exception as e:
-            print(f"⚠️ Error forzando salida: {e}")
-            import sys
-            sys.exit(1)
+        if self._is_exiting:
+            return
+        self._is_exiting = True
+        
+        print("🛑 Forzando salida de la aplicación...")
+        # Limpiar recursos
+        self.cleanup()
+        
+        # Forzar cierre de la aplicación Qt
+        app = QApplication.instance()
+        if app:
+            app.quit()
 
     def closeEvent(self, event):
         """Maneja el evento de cierre de la ventana (cuando presionas X)"""
-        try:
-            print("🚪 Cerrando aplicación...")
-            self.force_exit()
-            event.accept()  # Aceptar el cierre
-        except Exception as e:
-            print(f"⚠️ Error al cerrar: {e}")
+        if self._is_exiting:
             event.accept()
-            import sys
-            sys.exit(1)
+            return
+        
+        print("🚪 Cerrando aplicación...")
+        self.force_exit()
+        event.accept()  # Aceptar el cierre
 
     def on_closing(self):
         """Método llamado cuando la aplicación está por cerrarse"""
-        try:
+        if not self._is_exiting:
             self.force_exit()
-        except Exception as e:
-            print(f"⚠️ Error al cerrar: {e}")
 
     def _end_error(self, msg: str):
         error_msg = f"❌ ERROR EN ESCANEO DE HUELLA: {msg}"

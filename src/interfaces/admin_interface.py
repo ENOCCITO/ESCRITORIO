@@ -73,21 +73,25 @@ class AdminInterface:
             header_layout.addWidget(left_header)
             header_layout.addStretch()
             
-            # OCULTAR el botón Volver para interfaces más limpias (se puede cerrar con Alt+F4 o gestos)
-            # back_btn = QPushButton("← Volver", header)
-            # back_btn.setCursor(Qt.PointingHandCursor)
-            # back_btn.setStyleSheet(
-            #     f"background-color: #f0f2f4; "
-            #     f"color: {TEXT_GRAY_DARK}; "
-            #     f"border: none; "
-            #     f"border-radius: 8px; "
-            #     f"padding: 8px 12px; "
-            #     f"font-size: 14px; "
-            #     f"font-weight: 700;"
-            # )
-            # # Al cerrar, restaurar la ventana principal
-            # back_btn.clicked.connect(lambda: self._close_and_restore(admin_win))
-            # header_layout.addWidget(back_btn)
+            # Botón cerrar (X) para volver a la pantalla principal
+            close_btn = QPushButton("✕", header)
+            close_btn.setFixedSize(40, 40)
+            close_btn.setCursor(Qt.PointingHandCursor)
+            close_btn.setStyleSheet(
+                f"QPushButton {{"
+                f"background-color: #f0f2f4; "
+                f"color: {TEXT_GRAY_DARK}; "
+                f"border: none; "
+                f"border-radius: 8px; "
+                f"font-size: 20px; "
+                f"font-weight: 600;"
+                f"}}"
+                f"QPushButton:hover {{"
+                f"background-color: #E5E7EB; "
+                f"}}"
+            )
+            close_btn.clicked.connect(admin_win.close)
+            header_layout.addWidget(close_btn)
             
             layout.addWidget(header)
 
@@ -294,7 +298,7 @@ class AdminInterface:
             main_title = QLabel("Selección de Ambientes", title_container)
             main_title.setAlignment(Qt.AlignCenter)
             main_title.setStyleSheet(
-                f"color: {TEXT_GRAY_DARK}; "
+                f"color: #000000; "
                 f"font-size: 36px; "
                 f"font-weight: 900; "
                 f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; "
@@ -306,7 +310,7 @@ class AdminInterface:
             subtitle_main = QLabel("Seleccione el ambiente que desea gestionar", title_container)
             subtitle_main.setAlignment(Qt.AlignCenter)
             subtitle_main.setStyleSheet(
-                f"color: {TEXT_GRAY_LIGHT}; "
+                f"color: #333333; "
                 f"font-size: 16px; "
                 f"font-weight: 400; "
                 f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif;"
@@ -316,7 +320,7 @@ class AdminInterface:
             
             main_layout.addWidget(title_container)
             
-            # Lista de ambientes con scroll
+            # Lista de ambientes con cuadrícula
             scroll = QScrollArea(main_content)
             scroll.setWidgetResizable(True)
             scroll.setStyleSheet(f"background-color: transparent; border: none;")
@@ -324,9 +328,9 @@ class AdminInterface:
             
             grid_holder = QWidget(scroll)
             grid_holder.setStyleSheet(f"background-color: transparent;")
-            grid_layout = QVBoxLayout(grid_holder)
-            grid_layout.setSpacing(16)
-            grid_layout.setContentsMargins(0, 0, 0, 0)
+            grid_layout = QGridLayout(grid_holder)  # Cambiar a QGridLayout
+            grid_layout.setSpacing(20)  # Espaciado entre botones
+            grid_layout.setContentsMargins(20, 20, 20, 20)
             
             from src.utils.utils import get_available_environments
             ambientes_reales = get_available_environments()
@@ -340,104 +344,52 @@ class AdminInterface:
                     f"padding: 40px;"
                 )
                 no_data_label.setWordWrap(False)
-                grid_layout.addWidget(no_data_label)
+                grid_layout.addWidget(no_data_label, 0, 0)
             else:
-                # Crear tarjetas de ambientes mejoradas
+                # Crear botones en cuadrícula (2 columnas)
+                row = 0
+                col = 0
                 for ambiente in ambientes_reales:
                     ambiente_id, nombre, descripcion, tipo, ubicacion, piso, edificio = ambiente
-                    subtitle = f"Ubicación: {ubicacion}" if ubicacion else ""
                     
-                    # Crear tarjeta de ambiente
-                    card = QWidget(grid_holder)
-                    card.setMinimumHeight(80)
-                    card.setStyleSheet(
-                        f"background-color: {CARD_BG}; "
-                        f"border: 1px solid {BORDER_COLOR}; "
+                    # Crear botón para el ambiente
+                    btn = QPushButton(nombre, grid_holder)
+                    btn.setCursor(Qt.PointingHandCursor)
+                    btn.setMinimumHeight(120)  # Botón grande
+                    btn.setMinimumWidth(120)   # Cuadrado
+                    btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+                    
+                    # Estilo del botón
+                    btn.setStyleSheet(
+                        f"QPushButton {{"
+                        f"background-color: {PRIMARY_COLOR}; "
+                        f"color: white; "
+                        f"border: none; "
                         f"border-radius: 12px; "
-                        f"padding: 20px;"
+                        f"padding: 15px; "
+                        f"font-size: 14px; "
+                        f"font-weight: 700; "
+                        f"font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; "
+                        f"}}"
+                        f"QPushButton:hover {{"
+                        f"background-color: #0E5AA7; "
+                        f"}}"
+                        f"QPushButton:pressed {{"
+                        f"background-color: #0A4A8A; "
+                        f"}}"
                     )
-                    card.setCursor(Qt.PointingHandCursor)
                     
-                    card_layout = QHBoxLayout(card)
-                    card_layout.setContentsMargins(0, 0, 0, 0)
-                    card_layout.setSpacing(16)
+                    # Conectar el click del botón
+                    btn.clicked.connect(lambda checked, eid=ambiente_id, n=nombre: self._select_environment(n, eid))
                     
-                    # Ícono del ambiente
-                    icon_label = QLabel("🏢", card)
-                    icon_label.setFixedSize(48, 48)
-                    icon_label.setAlignment(Qt.AlignCenter)
-                    icon_label.setStyleSheet(
-                        f"background-color: rgba(19, 109, 236, 0.1); "
-                        f"border-radius: 24px; "
-                        f"font-size: 24px;"
-                    )
-                    card_layout.addWidget(icon_label)
+                    # Agregar a la cuadrícula
+                    grid_layout.addWidget(btn, row, col)
                     
-                    # Información del ambiente
-                    info_layout = QVBoxLayout()
-                    info_layout.setSpacing(4)
-                    info_layout.setAlignment(Qt.AlignLeft)
-                    
-                    title_label = QLabel(nombre, card)
-                    title_label.setStyleSheet(
-                        f"color: {TEXT_GRAY_DARK}; "
-                        f"font-size: 18px; "
-                        f"font-weight: 700;"
-                    )
-                    title_label.setWordWrap(False)
-                    info_layout.addWidget(title_label)
-                    
-                    if subtitle:
-                        subtitle_label = QLabel(subtitle, card)
-                        subtitle_label.setStyleSheet(
-                            f"color: {TEXT_GRAY_LIGHT}; "
-                            f"font-size: 14px; "
-                            f"font-weight: 400;"
-                        )
-                        subtitle_label.setWordWrap(False)
-                        info_layout.addWidget(subtitle_label)
-                    
-                    card_layout.addLayout(info_layout, 1)
-                    card_layout.addStretch()
-                    
-                    # Hover effect y click
-                    class CardHoverEffect(QObject):
-                        def __init__(self, widget, callback):
-                            super().__init__(widget)
-                            self.widget = widget
-                            self.callback = callback
-                        def eventFilter(self, obj, ev):
-                            if ev.type() == QEvent.Enter:
-                                self.widget.setStyleSheet(
-                                    f"background-color: {CARD_BG}; "
-                                    f"border: 1px solid {PRIMARY_COLOR}; "
-                                    f"border-radius: 12px; "
-                                    f"padding: 20px;"
-                                )
-                            elif ev.type() == QEvent.Leave:
-                                self.widget.setStyleSheet(
-                                    f"background-color: {CARD_BG}; "
-                                    f"border: 1px solid {BORDER_COLOR}; "
-                                    f"border-radius: 12px; "
-                                    f"padding: 20px;"
-                                )
-                            elif ev.type() == QEvent.MouseButtonRelease:
-                                try:
-                                    if self.callback:
-                                        self.callback()
-                                except Exception:
-                                    pass
-                            return False
-                    
-                    # Callback para el click
-                    def on_card_click():
-                        self._select_environment(nombre, ambiente_id)
-                    
-                    hover_effect = CardHoverEffect(card, on_card_click)
-                    card.installEventFilter(hover_effect)
-                    card._hover_effect = hover_effect
-                    
-                    grid_layout.addWidget(card)
+                    # Mover a la siguiente posición
+                    col += 1
+                    if col >= 2:  # 2 columnas
+                        col = 0
+                        row += 1
             
             scroll.setWidget(grid_holder)
             main_layout.addWidget(scroll, 1)
