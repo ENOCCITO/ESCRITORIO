@@ -12,16 +12,31 @@ from PySide6.QtWidgets import (
     QHBoxLayout, QGraphicsDropShadowEffect, QSizePolicy, QScrollArea, QFrame
 )
 from PySide6.QtCore import Qt, QSize, QObject, QEvent, QTimer
-from PySide6.QtGui import QFont, QColor, QPixmap, QPainter, QBrush, QPainterPath
+from pathlib import Path
 import os
+
+from PySide6.QtGui import QFont, QColor, QPixmap, QPainter, QBrush, QPainterPath
 
 from src.config.config import *
 
-def setup_futuristic_styles(app):
-    """Configura estilos globales con hoja de estilos Qt."""
-    app.setStyleSheet(f"""
+
+def _load_qss_from_file() -> str:
+    """Intenta cargar la hoja de estilos QSS externa."""
+    utils_dir = Path(__file__).resolve().parent
+    root_dir = utils_dir.parent.parent  # .../ESCRITORIO
+    qss_path = root_dir / "assets" / "styles" / "app.qss"
+    if qss_path.exists():
+        try:
+            return qss_path.read_text(encoding="utf-8")
+        except Exception:
+            return ""
+    return ""
+
+
+def _default_stylesheet() -> str:
+    """Hoja de estilos integrada como fallback."""
+    return f"""
         QWidget {{
-            /* Fondo sólido para eliminar las bandas horizontales ("renglones") */
             background-color: {BG_DARK};
             color: {TEXT_WHITE};
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -112,7 +127,15 @@ def setup_futuristic_styles(app):
             background-color: {ACCENT_BLUE};
             color: {BG_DARK};
         }}
-    """)
+    """
+
+
+def setup_futuristic_styles(app):
+    """Configura estilos globales cargando QSS externo; usa fallback integrado si falta."""
+    qss = _load_qss_from_file()
+    if not qss:
+        qss = _default_stylesheet()
+    app.setStyleSheet(qss)
 
 def create_futuristic_button(parent, text, command, **kwargs):
     btn = QPushButton(text, parent)

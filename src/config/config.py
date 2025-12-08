@@ -2,102 +2,127 @@
 # -*- coding: utf-8 -*-
 """
 config.py
-- Configuración centralizada del sistema de dispensación biométrica
-- Constantes y parámetros del sistema
+- Shim temporal para mantener compatibilidad con el código existente.
+- Carga los valores desde `src/config/settings.py` (Pydantic Settings).
 """
+from __future__ import annotations
+
+from src.config.settings import Settings, settings
+
+# Exportar todas las constantes para mantener compatibilidad con los imports con wildcard
+__all__ = [
+    "settings",
+    "DB_CONFIG",
+    "FINGERPRINT_PORT_DEFAULT",
+    "FINGERPRINT_BAUD_DEFAULT",
+    "ARDUINO_PORT_DEFAULT",
+    "ARDUINO_BAUD_DEFAULT",
+    "STEPS_PER_REV",
+    "MICROSTEP_FACTOR",
+    "GEAR_RATIO",
+    "AUTO_HOME_AFTER_OPEN",
+    "DEFAULT_THRESHOLD",
+    "DEFAULT_TOPN",
+    "DEFAULT_TIMEOUT_S",
+    "DEFAULT_DWELL",
+    "LOG_FILE",
+    "BG_DARK",
+    "BG_MEDIUM",
+    "BG_LIGHT",
+    "ACCENT_BLUE",
+    "ACCENT_CYAN",
+    "TEXT_WHITE",
+    "TEXT_GRAY",
+    "MAIN_WINDOW_SIZE",
+    "MAIN_WINDOW_MIN_SIZE",
+    "MODAL_SIZE",
+    "ADMIN_WINDOW_SIZE",
+    "ENVIRONMENT_WINDOW_SIZE",
+    "REGISTRATION_WINDOW_SIZE",
+    "SCHEDULE_WINDOW_SIZE",
+    "HELP_WINDOW_SIZE",
+    "SYSTEM_INFO_WINDOW_SIZE",
+    "HISTORY_WINDOW_SIZE",
+    "FONT_TITLE",
+    "FONT_SUBTITLE",
+    "FONT_BUTTON",
+    "FONT_BUTTON_SMALL",
+    "FONT_LABEL",
+    "FONT_TEXT",
+    "FONT_MONOSPACE",
+    "BUTTON_WIDTH",
+    "BUTTON_HEIGHT",
+    "BUTTON_PADDING_X",
+    "BUTTON_PADDING_Y",
+    "BUTTON_GRID_PADDING",
+    "ENVIRONMENTS",
+    "SAMPLE_USERS",
+    "SAMPLE_CANDIDATES",
+]
 
 # ============ CONFIGURACIÓN DE BASE DE DATOS ============
-DB_CONFIG = dict(host="localhost", user="root", password="", database="sicefa")
+DB_CONFIG = settings.db_config
 
 # ============ CONFIGURACIÓN DE PUERTOS ============
-FINGERPRINT_PORT_DEFAULT = "COM3"
-FINGERPRINT_BAUD_DEFAULT = 57600
-
-ARDUINO_PORT_DEFAULT = "COM4"
-ARDUINO_BAUD_DEFAULT = 115200
+FINGERPRINT_PORT_DEFAULT = settings.fingerprint_port_default
+FINGERPRINT_BAUD_DEFAULT = settings.fingerprint_baud_default
+ARDUINO_PORT_DEFAULT = settings.arduino_port_default
+ARDUINO_BAUD_DEFAULT = settings.arduino_baud_default
 
 # ============ CALIBRACIÓN MECÁNICA (PASOS) ============
-# Pasos nativos del motor por vuelta
-STEPS_PER_REV = 200
-# 1 para full-step (L298N con secuencia de 4 estados), 2 si usas half‑step de 8 estados
-MICROSTEP_FACTOR = 1
-# Relación de transmisión rueda/motor calibrada: 1360 pasos por vuelta / (200*1) = 6.8
-GEAR_RATIO = 6.8
-
-# ============ COMPORTAMIENTO DE MOVIMIENTO ============
-# Si True, tras abrir la llave vuelve automáticamente a HOME
-AUTO_HOME_AFTER_OPEN = True
+STEPS_PER_REV = settings.steps_per_rev
+MICROSTEP_FACTOR = settings.microstep_factor
+GEAR_RATIO = settings.gear_ratio
+AUTO_HOME_AFTER_OPEN = settings.auto_home_after_open
 
 # ============ CONFIGURACIÓN DEL SISTEMA ============
-DEFAULT_THRESHOLD = 50
-DEFAULT_TOPN = 5
-DEFAULT_TIMEOUT_S = 30
-DEFAULT_DWELL = 2  # segundos (mantener 2s antes de volver a HOME)
-LOG_FILE = "dispenser.log"
+DEFAULT_THRESHOLD = settings.default_threshold
+DEFAULT_TOPN = settings.default_topn
+DEFAULT_TIMEOUT_S = settings.default_timeout_s
+DEFAULT_DWELL = settings.default_dwell  # segundos (mantener 2s antes de volver a HOME)
+LOG_FILE = settings.log_file
 
 # ============ CONFIGURACIÓN DE INTERFAZ ============
-# Colores del tema futurista (Dark Slate refinado)
-BG_DARK = '#0b1220'
-BG_MEDIUM = '#111a2b'
-BG_LIGHT = '#162235'
-ACCENT_BLUE = '#00e5ff'
-ACCENT_CYAN = '#7dd3fc'
-TEXT_WHITE = '#e6f3ff'
-TEXT_GRAY = '#9fb3c8'
+BG_DARK = settings.bg_dark
+BG_MEDIUM = settings.bg_medium
+BG_LIGHT = settings.bg_light
+ACCENT_BLUE = settings.accent_blue
+ACCENT_CYAN = settings.accent_cyan
+TEXT_WHITE = settings.text_white
+TEXT_GRAY = settings.text_gray
 
-# ============ CONFIGURACIÓN DE VENTANAS ============
-MAIN_WINDOW_SIZE = "1200x800"
-MAIN_WINDOW_MIN_SIZE = (1000, 700)
-MODAL_SIZE = "500x400"
-ADMIN_WINDOW_SIZE = "600x500"
-ENVIRONMENT_WINDOW_SIZE = "800x700"
-REGISTRATION_WINDOW_SIZE = "900x700"
-SCHEDULE_WINDOW_SIZE = "800x600"
-HELP_WINDOW_SIZE = "600x500"
-SYSTEM_INFO_WINDOW_SIZE = "600x500"
-HISTORY_WINDOW_SIZE = "800x600"
+MAIN_WINDOW_SIZE = settings.main_window_size
+MAIN_WINDOW_MIN_SIZE = (settings.main_window_min_width, settings.main_window_min_height)
+MODAL_SIZE = settings.modal_size
+ADMIN_WINDOW_SIZE = settings.admin_window_size
+ENVIRONMENT_WINDOW_SIZE = settings.environment_window_size
+REGISTRATION_WINDOW_SIZE = settings.registration_window_size
+SCHEDULE_WINDOW_SIZE = settings.schedule_window_size
+HELP_WINDOW_SIZE = settings.help_window_size
+SYSTEM_INFO_WINDOW_SIZE = settings.system_info_window_size
+HISTORY_WINDOW_SIZE = settings.system_info_window_size  # Compat con código existente
 
 # ============ CONFIGURACIÓN DE FUENTES ============
-FONT_TITLE = ("Segoe UI", 24, "bold")
-FONT_SUBTITLE = ("Segoe UI", 12)
-FONT_BUTTON = ("Segoe UI", 14, "bold")
-FONT_BUTTON_SMALL = ("Segoe UI", 12, "bold")
-FONT_LABEL = ("Segoe UI", 9)
-FONT_TEXT = ("Segoe UI", 10)
-FONT_MONOSPACE = ("Consolas", 10)
+FONT_TITLE = settings.font_title
+FONT_SUBTITLE = settings.font_subtitle
+FONT_BUTTON = settings.font_button
+FONT_BUTTON_SMALL = settings.font_button_small
+FONT_LABEL = settings.font_label
+FONT_TEXT = settings.font_text
+FONT_MONOSPACE = settings.font_monospace
 
 # ============ CONFIGURACIÓN DE BOTONES ============
-BUTTON_WIDTH = 20
-BUTTON_HEIGHT = 3
-BUTTON_PADDING_X = 30
-BUTTON_PADDING_Y = 20
-BUTTON_GRID_PADDING = 20
+BUTTON_WIDTH = settings.button_width
+BUTTON_HEIGHT = settings.button_height
+BUTTON_PADDING_X = settings.button_padding_x
+BUTTON_PADDING_Y = settings.button_padding_y
+BUTTON_GRID_PADDING = settings.button_grid_padding
 
 # ============ CONFIGURACIÓN DE AMBIENTES ============
-ENVIRONMENTS = [
-    "Ambiente 1", "Ambiente 2", "Ambiente 3",
-    "Ambiente 4", "Ambiente 5", "Ambiente 6", 
-    "Ambiente 7", "Ambiente 8", "Ambiente 9",
-    "Ambiente 10", "Ambiente 11", "Ambiente 12"
-]
+ENVIRONMENTS = settings.environments
 
 # ============ CONFIGURACIÓN DE USUARIOS DE EJEMPLO ============
-SAMPLE_USERS = [
-    {"id": 4052624, "name": "Mina Sitin", "document": "ID 4052624"},
-    {"id": 2051321, "name": "Moradico Nomo", "document": "ID 2051321"},
-    {"id": 4052819, "name": "Mora Sitin", "document": "ID 4052819"},
-    {"id": 4052428, "name": "Mora Sitán", "document": "ID 4052428"},
-    {"id": 2051621, "name": "Nhandio Nama", "document": "ID 2051621"},
-    {"id": 4051629, "name": "Mora Sitin", "document": "ID 4051629"},
-    {"id": 2077491, "name": "Hesopro", "document": "ID 2077491"}
-]
+SAMPLE_USERS = settings.sample_users
 
 # ============ CONFIGURACIÓN DE CANDIDATOS DE EJEMPLO ============
-SAMPLE_CANDIDATES = [
-    (1001, "Administrador Principal", [1, 2, 3, 4, 5]),
-    (1002, "Instructor Senior", [6, 7, 8, 9, 10]),
-    (1003, "Seguridad Campus", [11, 12, 13, 14, 15]),
-    (1004, "Personal Aseo", [16, 17, 18, 19, 20]),
-    (1005, "Administrativo", [21, 22, 23, 24, 25]),
-    (1006, "Usuario Prueba", [26, 27, 28, 29, 30])
-]
+SAMPLE_CANDIDATES = settings.sample_candidates

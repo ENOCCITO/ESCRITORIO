@@ -5,33 +5,16 @@
 ```
 ESCRITORIO/
 ├── src/                          # Código fuente principal
+│   ├── app/                      # Aplicación GUI y API
+│   │   ├── gui/                  # GUI PySide6 (main_window.py, launch.py)
+│   │   ├── api/                  # FastAPI (main.py, routers/, schemas.py)
+│   │   └── services/             # Servicios de aplicación (auth huella)
 │   ├── interfaces/               # Interfaces de usuario (PySide6)
-│   │   ├── admin_interface.py
-│   │   ├── administrative_interface.py
-│   │   ├── cleaning_interface.py
-│   │   ├── instructor_interface.py
-│   │   ├── security_interface.py
-│   │   ├── schedule_interface.py
-│   │   └── fingerprint_registration_interface.py
-│   │
 │   ├── core/                     # Lógica de negocio central
-│   │   ├── alert_system.py       # Sistema de alertas
-│   │   ├── arduino_controller.py # Control de Arduino
-│   │   ├── biometric_scanner.py  # Escáner biométrico
-│   │   ├── desktop_alerts.py     # Alertas de escritorio
-│   │   ├── fingerprint_simulator.py
-│   │   ├── fingerprint_validator.py
-│   │   ├── key_manager.py        # Gestión de llaves
-│   │   ├── role_validator.py     # Validación de roles
-│   │   └── sync_fingerprints.py  # Sincronización de huellas
-│   │
-│   ├── utils/                    # Utilidades y helpers
-│   │   ├── utils.py              # Funciones utilitarias generales
-│   │   ├── db_utils.py           # Utilidades de base de datos
-│   │   └── styles.py             # Estilos de la interfaz
-│   │
-│   └── config/                   # Configuración
-│       └── config.py             # Archivo de configuración principal
+│   ├── domain/                   # Entidades y servicios de dominio
+│   ├── infra/                    # Adaptadores DB (infra/db) y hardware (infra/hardware)
+│   ├── utils/                    # Utilidades y helpers (styles, utils, db_utils)
+│   └── config/                   # Configuración (settings.py + shim config.py)
 │
 ├── arduino/                      # Código Arduino (.ino)
 │   ├── arduino_nema17_CORREGIDO_FINAL.ino
@@ -71,7 +54,7 @@ ESCRITORIO/
 │   ├── fix_arduino_port.py
 │   └── liberar_puerto_arduino.py
 │
-├── main.py                       # Punto de entrada principal
+├── main.py                       # Bootstrap GUI → src/app/gui/main_window.py
 ├── requirements.txt              # Dependencias del proyecto
 ├── .gitignore                    # Archivos ignorados por git
 └── .venv/                        # Entorno virtual (no versionado)

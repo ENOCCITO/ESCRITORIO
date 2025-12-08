@@ -391,70 +391,79 @@ def get_daily_schedule(date=None) -> List[Dict[str, Any]]:
         return []
 
 def get_weekly_schedule() -> List[Dict[str, Any]]:
-    """Obtiene la programación semanal (lunes a viernes) desde la tabla programaciones"""
+    """
+    Obtiene programación real desde SICEFA.
+    - Trae hasta 500 filas sin filtrar por fecha para mostrar cualquier programación cargada.
+    - Usa: instructor_programs, instructor_program_people, environment_instructor_programs, environments, people.
+    """
     try:
         with db_connect() as cnx:
             cur = cnx.cursor(dictionary=True)
-            
-            # Consulta para obtener programación de lunes a viernes
+
             query = """
                 SELECT 
-                    pr.id,
-                    pr.dia_semana,
-                    pr.hora_inicio,
-                    pr.hora_fin,
-                    pr.tipo_programacion,
-                    pr.activo,
-                    pr.notas,
-                    CONCAT(p.nombres, ' ', p.apellidos) as instructor_nombre,
-                    a.nombre as ambiente_nombre,
-                    a.descripcion as ambiente_descripcion,
-                    tp.nombre as tipo_personal
-                FROM programaciones pr
-                JOIN personal p ON pr.personal_id = p.id
-                JOIN ambientes a ON pr.ambiente_id = a.id
-                JOIN tipos_personal tp ON p.tipo_personal_id = tp.id
-                WHERE pr.dia_semana IN ('LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES')
-                  AND pr.activo = 1
-                  AND tp.nombre = 'INSTRUCTOR'
-                ORDER BY 
-                    CASE pr.dia_semana
-                        WHEN 'LUNES' THEN 1
-                        WHEN 'MARTES' THEN 2
-                        WHEN 'MIERCOLES' THEN 3
-                        WHEN 'JUEVES' THEN 4
-                        WHEN 'VIERNES' THEN 5
-                    END,
-                    pr.hora_inicio ASC
+                    ip.id,
+                    ip.date,
+                    ip.start_time,
+                    ip.end_time,
+                    ip.activity_name,
+                    ip.activity_description,
+                    ip.course_id,
+                    COALESCE(e.name, '') AS environment_name,
+                    COALESCE(e.description, '') AS environment_description,
+                    COALESCE(CONCAT_WS(' ', p.first_name, p.first_last_name, p.second_last_name), 'Sin instructor') AS instructor_name
+                FROM instructor_programs ip
+                LEFT JOIN instructor_program_people ipp ON ipp.instructor_program_id = ip.id
+                LEFT JOIN people p ON p.id = ipp.person_id
+                LEFT JOIN environment_instructor_programs eip ON eip.instructor_program_id = ip.id
+                LEFT JOIN environments e ON e.id = eip.environment_id
+                ORDER BY ip.date ASC, ip.start_time ASC
+                LIMIT 500
             """
-            
+
             cur.execute(query)
             results = cur.fetchall()
             cur.close()
-            
+
             if not results:
-                print("📭 No hay programación en la base de datos")
+                print("📭 No hay programación en SICEFA")
                 return []
-            
-            # Procesar datos reales
+
+            day_names = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO", "DOMINGO"]
+
             schedule_data = []
             for row in results:
-                schedule_data.append({
-                    'id': row['id'],
-                    'dia_semana': row['dia_semana'],
-                    'instructor': row['instructor_nombre'],
-                    'ambiente': row['ambiente_nombre'],
-                    'programa_formacion': f"{row['ambiente_descripcion']} - {row['tipo_programacion']}",
-                    'hora_inicio': str(row['hora_inicio'])[:5],  # Formato HH:MM
-                    'hora_fin': str(row['hora_fin'])[:5],  # Formato HH:MM
-                    'tipo_programacion': row['tipo_programacion'],
-                    'notas': row['notas'] or '',
-                    'tipo_personal': row['tipo_personal']
-                })
-            
+                fecha = row["date"]
+                try:
+                    dia_semana = day_names[fecha.weekday()]
+                except Exception:
+                    dia_semana = "DIA"
+
+                programa = row.get("activity_name") or ""
+                if not programa:
+                    programa = f"Curso {row.get('course_id')}"
+                if row.get("activity_description"):
+                    programa = f"{programa} - {row['activity_description']}"
+
+                schedule_data.append(
+                    {
+                        "id": row["id"],
+                        "dia_semana": dia_semana,
+                        "instructor": row["instructor_name"],
+                        "ambiente": row["environment_name"] or "Sin ambiente",
+                        "programa_formacion": programa,
+                        "hora_inicio": str(row["start_time"])[:5] if row.get("start_time") else "",
+                        "hora_fin": str(row["end_time"])[:5] if row.get("end_time") else "",
+                        "tipo_programacion": row.get("activity_name") or "",
+                        "notas": row.get("activity_description") or "",
+                        "tipo_personal": "INSTRUCTOR",
+                        "fecha": str(fecha),
+                    }
+                )
+
             print(f"✅ Programación cargada: {len(schedule_data)} elementos")
             return schedule_data
-            
+
     except Exception as e:
         print(f"❌ Error obteniendo programación: {e}")
         return []

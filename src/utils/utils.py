@@ -147,7 +147,7 @@ def load_candidates_from_db() -> List[Tuple[int, str, List[int]]]:
     """
     q = """
         SELECT p.id,
-               CONCAT_WS(' ', p.first_name, p.last_name) AS full_name
+               CONCAT_WS(' ', p.first_name, p.first_last_name, p.second_last_name) AS full_name
         FROM people AS p
         WHERE p.deleted_at IS NULL
         LIMIT 100

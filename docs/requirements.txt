@@ -3,4 +3,6 @@ mysql-connector-python>=8.0.0
 pyserial>=3.5
 pyfingerprint>=0.4
 psutil>=5.9.0
-
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pydantic-settings>=2.3.0

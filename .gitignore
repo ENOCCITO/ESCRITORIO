@@ -17,6 +17,9 @@ __pycache__/
 # Archivos temporales del proyecto
 update_imports.py
 
+# Variables de entorno
+.env
+
 # Datos exportados
 *.csv
 
